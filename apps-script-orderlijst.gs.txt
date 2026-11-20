@@ -13,6 +13,8 @@
  *     Make-credits per keer). Bij 80% of meer: een pushmelding.
  *     De sleutels hiervoor stuurt het dashboard een keer via de knop
  *     "Meldingen ook als de app dicht is" en staan alleen in de Scripteigenschappen.
+ *  4. Sluitingsdagen: het dashboard bewaart hier de dagen waarop de orderadministratie
+ *     gesloten is (bijv. feestdagen). Make vraagt ?vandaag=1 bij kantooruren_check.
  */
 
 // ===== Instellingen (alleen aanpassen als het nodig is) =====
@@ -30,6 +32,8 @@ var VERBRUIK_DREMPEL = 80;              // standaard %; het dashboard kan per di
 /** Web-app: geeft de status als JSON terug aan het dashboard. */
 function doGet(e) {
   var uit;
+  if (e && e.parameter && e.parameter.sluitingsdagen) return antwoord_({ dagen: sluitingsdagen_() });
+  if (e && e.parameter && e.parameter.vandaag) return antwoord_(vandaagGesloten_());
   if (e && e.parameter && e.parameter.instellingen) {
     var p = PropertiesService.getScriptProperties();
     uit = { elevenlabs: !!p.getProperty('el-key'), make: !!p.getProperty('mk-hook'), twilio: !!p.getProperty('tw-hook'),
@@ -135,12 +139,34 @@ function doPost(e) {
   try { d = JSON.parse(e.postData.contents); } catch (x) { return antwoord_({ fout: 'ongeldig' }); }
   var oud = p.getProperty('el-key');
   if (oud && d['el-key'] !== oud && d['oude-el-key'] !== oud) return antwoord_({ fout: 'geweigerd' });
+  if (d.actie === 'sluitingsdagen') {
+    var lijst = (d.dagen || []).filter(function (x) { return x && /^\d{4}-\d{2}-\d{2}$/.test(x.datum); })
+      .map(function (x) { return { datum: x.datum, naam: String(x.naam || '').trim().slice(0, 60) }; });
+    lijst.sort(function (a, b) { return a.datum < b.datum ? -1 : 1; });
+    p.setProperty('sluitingsdagen', JSON.stringify(lijst));
+    return antwoord_({ ok: true, dagen: lijst });
+  }
   VELDEN.forEach(function (k) {
     if (d[k] !== undefined && d[k] !== null) p.setProperty(k, String(d[k]).trim());
   });
   p.setProperty('instellingen-tijd', new Date().toISOString());
   return antwoord_({ ok: true });
 }
+// ================= Sluitingsdagen =================
+
+function sluitingsdagen_() {
+  try { return JSON.parse(prop_('sluitingsdagen') || '[]'); } catch (x) { return []; }
+}
+
+/** Voor Make (kantooruren_check): is de orderadministratie vandaag gesloten, en waarom? */
+function vandaagGesloten_() {
+  var vandaag = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
+  var dag = sluitingsdagen_().filter(function (x) { return x.datum === vandaag; })[0];
+  if (!dag) return { gesloten: false, reden: '', tekst: '' };
+  return { gesloten: true, reden: dag.naam || '',
+           tekst: dag.naam ? 'gesloten vanwege ' + dag.naam : 'gesloten (sluitingsdag)' };
+}
+
 function antwoord_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
 
 function prop_(k) { return PropertiesService.getScriptProperties().getProperty(k) || ''; }

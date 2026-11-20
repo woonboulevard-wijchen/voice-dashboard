@@ -91,6 +91,18 @@
   .primair{background:#2563eb;color:#fff}
   .tweede{background:var(--grijs-l);color:var(--tekst)}
   .noot{font-size:11px;color:var(--zacht);margin-top:12px;text-align:center}
+  /* sluitingsdagen */
+  .sd-lijst{list-style:none;margin:8px 0 0;padding:0}
+  .sd-lijst li{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:14px}
+  .sd-lijst li .d{flex:1;min-width:0}
+  .sd-lijst li .n{display:block;font-size:12px;color:var(--zacht)}
+  .sd-lijst li.vandaag{font-weight:700}
+  .sd-weg{border:0;background:var(--grijs-l);width:30px;height:30px;border-radius:50%;cursor:pointer;flex:none}
+  .sd-toevoegen{display:grid;grid-template-columns:1fr 1.4fr auto;gap:8px;margin-top:10px;align-items:end}
+  .sd-toevoegen button{border:0;border-radius:8px;padding:10px 14px;font-size:15px;font-weight:600;cursor:pointer;background:#2563eb;color:#fff}
+  @media (max-width:480px){.sd-toevoegen{grid-template-columns:1fr 1fr}.sd-toevoegen button{grid-column:1/-1}}
+  .sd-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .sd-chips button{border:1px dashed #94a3b8;background:#fff;border-radius:999px;padding:5px 10px;font-size:12px;cursor:pointer;color:#334155}
 </style>
 </head>
 <body>
@@ -151,6 +163,19 @@
     <div id="sh-groot" class="groot woord">–</div>
     <div id="sh-tekst" class="small"></div>
     <div id="sh-fout" class="fout"></div>
+  </div>
+
+  <div class="card breed">
+    <div class="kop"><span class="ico">📅</span>Sluitingsdagen orderadministratie<span id="dot-sd" class="dot"></span></div>
+    <div id="sd-tekst" class="small">Op deze dagen verbindt de assistent niet door en biedt hij een terugbelverzoek aan. Bij een feestdag noemt hij de naam.</div>
+    <ul id="sd-lijst" class="sd-lijst"></ul>
+    <div class="sd-toevoegen">
+      <div><label>Datum</label><input id="sd-datum" type="date" onchange="sdNaamVoorstel()"></div>
+      <div><label>Feestdag of reden (mag leeg)</label><input id="sd-naam" placeholder="bijv. Eerste Kerstdag" maxlength="60"></div>
+      <button type="button" onclick="sdToevoegen()">Gesloten</button>
+    </div>
+    <div id="sd-chips" class="sd-chips"></div>
+    <div id="sd-fout" class="fout"></div>
   </div>
 
   <div class="card breed">
@@ -558,8 +583,73 @@ async function checkSheet(){
   }catch(e){dot.className='dot rood';g.textContent='Onbekend';g.className='groot woord rood';$('sh-tekst').textContent='';$('sh-fout').textContent='Fout: '+(e.message||e);}
 }
 
+// ===== Sluitingsdagen: staan in het Apps Script (ai@), Make vraagt ze op bij kantooruren_check =====
+let sdDagen=[];
+const sdISO=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+function pasen(j){const a=j%19,b=Math.floor(j/100),c=j%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),
+  h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),
+  maand=Math.floor((h+l-7*m+114)/31),dag=((h+l-7*m+114)%31)+1;return new Date(j,maand-1,dag);}
+function feestdagen(j){
+  const p=pasen(j),plus=n=>{const d=new Date(p);d.setDate(d.getDate()+n);return sdISO(d);};
+  let kd=new Date(j,3,27);if(kd.getDay()===0)kd=new Date(j,3,26);
+  const l=[[j+'-01-01','Nieuwjaarsdag'],[plus(-2),'Goede Vrijdag'],[plus(0),'Eerste Paasdag'],[plus(1),'Tweede Paasdag'],
+    [sdISO(kd),'Koningsdag'],[j+'-05-05','Bevrijdingsdag'],[plus(39),'Hemelvaartsdag'],[plus(49),'Eerste Pinksterdag'],
+    [plus(50),'Tweede Pinksterdag'],[j+'-12-24','Kerstavond'],[j+'-12-25','Eerste Kerstdag'],[j+'-12-26','Tweede Kerstdag'],[j+'-12-31','Oudejaarsdag']];
+  return l.map(([datum,naam])=>({datum,naam}));
+}
+function sdFeestnaam(datum){const j=+datum.slice(0,4);const f=feestdagen(j).find(x=>x.datum===datum);return f?f.naam:'';}
+function sdNaamVoorstel(){const d=$('sd-datum').value;if(d&&!$('sd-naam').value)$('sd-naam').value=sdFeestnaam(d);}
+function sdDatumTekst(datum){return new Date(datum+'T12:00').toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',month:'long',year:'numeric'});}
+function sdTonen(){
+  const vandaag=sdISO(new Date());
+  const komend=sdDagen.filter(x=>x.datum>=vandaag);
+  const isVandaag=komend.length&&komend[0].datum===vandaag;
+  $('dot-sd').className='dot '+(isVandaag?'oranje':'groen');
+  $('sd-lijst').innerHTML=komend.length?komend.map(x=>'<li class="'+(x.datum===vandaag?'vandaag':'')+'"><span class="d">'+esc(sdDatumTekst(x.datum))+(x.datum===vandaag?' · vandaag gesloten':'')+
+    '<span class="n">'+esc(x.naam||'Gesloten (geen feestdag)')+'</span></span><button class="sd-weg" title="Weer open" aria-label="Weer open" onclick="sdWeg(\''+x.datum+'\')">✕</button></li>').join('')
+    :'<li class="small">Geen sluitingsdagen ingesteld.</li>';
+  const tot=new Date();tot.setFullYear(tot.getFullYear()+1);const totISO=sdISO(tot);
+  const j=new Date().getFullYear();
+  const voorstel=[...feestdagen(j),...feestdagen(j+1)].filter(x=>x.datum>=vandaag&&x.datum<=totISO&&!sdDagen.some(y=>y.datum===x.datum));
+  $('sd-chips').innerHTML=voorstel.length?'<span class="small" style="width:100%">Snel toevoegen:</span>'+voorstel.map(x=>'<button type="button" onclick="sdToevoegen(\''+x.datum+'\',\''+x.naam+'\')">+ '+esc(x.naam)+' '+new Date(x.datum+'T12:00').toLocaleDateString('nl-NL',{day:'numeric',month:'short'})+'</button>').join(''):'';
+}
+async function sdLaden(){
+  const url=$('sh-url').value.trim();
+  if(!url){$('dot-sd').className='dot';$('sd-fout').textContent='Vul het Apps Script-adres in bij Instellingen (Orderlijst).';return;}
+  try{
+    const r=await fetch(url+(url.includes('?')?'&':'?')+'sluitingsdagen=1&t='+Date.now());
+    const d=JSON.parse(await r.text());
+    if(!Array.isArray(d.dagen))throw new Error('Het script kent nog geen sluitingsdagen. Is de nieuwe versie geïmplementeerd?');
+    sdDagen=d.dagen;$('sd-fout').textContent='';sdTonen();
+  }catch(e){$('dot-sd').className='dot rood';$('sd-fout').textContent='Fout: '+(e.message||e);}
+}
+async function sdOpslaan(nieuw){
+  const url=$('sh-url').value.trim();
+  if(!url){$('sd-fout').textContent='Vul het Apps Script-adres in bij Instellingen (Orderlijst).';return;}
+  $('sd-fout').textContent='';
+  const oud=sdDagen;sdDagen=nieuw;sdTonen();
+  try{
+    await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({actie:'sluitingsdagen','el-key':$('el-key').value.trim(),dagen:nieuw})});
+    await new Promise(r=>setTimeout(r,1200));
+    const r=await fetch(url+(url.includes('?')?'&':'?')+'sluitingsdagen=1&t='+Date.now());
+    const d=JSON.parse(await r.text());
+    if(JSON.stringify(d.dagen)!==JSON.stringify([...nieuw].sort((a,b)=>a.datum<b.datum?-1:1)))
+      throw new Error('niet opgeslagen. Klopt de ElevenLabs-sleutel bij Instellingen?');
+    sdDagen=d.dagen;sdTonen();
+  }catch(e){sdDagen=oud;sdTonen();$('sd-fout').textContent='Opslaan mislukt: '+(e.message||e);}
+}
+function sdToevoegen(datum,naam){
+  datum=datum||$('sd-datum').value;naam=(naam!==undefined?naam:$('sd-naam').value).trim();
+  if(!datum){$('sd-fout').textContent='Kies eerst een datum.';return;}
+  if(!naam)naam=sdFeestnaam(datum);
+  $('sd-datum').value='';$('sd-naam').value='';
+  sdOpslaan([...sdDagen.filter(x=>x.datum!==datum),{datum,naam}]);
+}
+function sdWeg(datum){sdOpslaan(sdDagen.filter(x=>x.datum!==datum));}
+
 async function controleer(){
-  await Promise.all([checkGesprekken(),checkEleven(),checkTwilio(),checkMake(),checkSheet()]);
+  await Promise.all([checkGesprekken(),checkEleven(),checkTwilio(),checkMake(),checkSheet(),sdLaden()]);
   $('laatste').textContent=new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
 }
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
