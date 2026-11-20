@@ -13,6 +13,10 @@
   #qr{display:flex;justify-content:center;margin:20px 0}
   #qr img{max-width:100%;height:auto;image-rendering:pixelated}
   .waarsch{background:#fef3c7;border-radius:8px;padding:10px 12px;font-size:.9rem}
+  .scan{margin:16px 0;padding-top:14px;border-top:1px solid #e5e7eb}
+  .scan button{border:0;background:#16a34a;color:#fff;padding:12px 16px;border-radius:8px;font-size:1rem;font-weight:600;width:100%;cursor:pointer}
+  #video{width:100%;border-radius:8px;margin-top:10px;display:none;background:#000}
+  #scanmelding{font-size:.9rem;color:#475569;margin-top:6px}
   a.knop{display:inline-block;background:#2563eb;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none}
 </style>
 </head>
@@ -20,6 +24,12 @@
 <main>
   <h1>Instellingen overzetten</h1>
   <div id="inhoud">Bezig…</div>
+  <div class="scan" id="scanblok">
+    <p><b>Instellingen ophalen van een ander apparaat</b><br>Open op het andere apparaat "Naar telefoon" (mag ook de oude site zijn), en scan die QR-code hier.</p>
+    <button type="button" id="scanknop">📷 QR-code scannen</button>
+    <video id="video" playsinline muted></video>
+    <div id="scanmelding"></div>
+  </div>
 </main>
 <script src="qrcode.js"></script>
 <script>
@@ -31,21 +41,60 @@
   function b64encode(s){ return btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
   function b64decode(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; return decodeURIComponent(escape(atob(s))); }
 
-  if (hash.indexOf('i=') === 0) {
+  function ontvang(code) {
     // Ontvangen: instellingen opslaan op dit apparaat
     try {
-      var data = JSON.parse(b64decode(hash.slice(2)));
+      var data = JSON.parse(b64decode(code));
       var n = 0;
       Object.keys(data).forEach(function (k) {
         if (k.indexOf(PREFIX) === 0) { localStorage.setItem(k, data[k]); n++; }
       });
       history.replaceState(null, '', location.pathname); // code uit de adresbalk halen
-      el.innerHTML = '<p>' + n + ' instellingen opgeslagen op dit apparaat.</p><p><a class="knop" href="index.html">Naar het dashboard</a></p>';
+      el.innerHTML = '<p>✓ ' + n + ' instellingen opgeslagen op dit apparaat.</p><p><a class="knop" href="index.html">Naar het dashboard</a></p>';
+      document.getElementById('scanblok').style.display = 'none';
     } catch (e) {
       el.innerHTML = '<p>Deze code klopt niet. Scan de QR-code opnieuw.</p>';
     }
-    return;
   }
+
+  // Scannen met de camera: werkt ook met QR-codes van het oude adres (alles na #i= telt)
+  var stroom = null;
+  document.getElementById('scanknop').onclick = async function () {
+    var video = document.getElementById('video'), melding = document.getElementById('scanmelding');
+    try {
+      stroom = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    } catch (e) { melding.textContent = 'Geen toegang tot de camera. Sta de camera toe en probeer opnieuw.'; return; }
+    video.srcObject = stroom; video.style.display = 'block'; await video.play();
+    melding.textContent = 'Houd de QR-code voor de camera…';
+    var detector = ('BarcodeDetector' in window) ? new BarcodeDetector({ formats: ['qr_code'] }) : null;
+    if (!detector && !window.jsQR) {
+      await new Promise(function (ok, fout) { var s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js'; s.onload = ok; s.onerror = fout; document.head.appendChild(s); })
+        .catch(function () { melding.textContent = 'Scannen lukt niet in deze browser.'; });
+    }
+    var doek = document.createElement('canvas'), ctx = doek.getContext('2d', { willReadFrequently: true });
+    async function kijk() {
+      if (!stroom) return;
+      var tekst = null;
+      try {
+        if (detector) { var r = await detector.detect(video); if (r.length) tekst = r[0].rawValue; }
+        else if (window.jsQR && video.videoWidth) {
+          doek.width = video.videoWidth; doek.height = video.videoHeight; ctx.drawImage(video, 0, 0);
+          var q = jsQR(ctx.getImageData(0, 0, doek.width, doek.height).data, doek.width, doek.height); if (q) tekst = q.data;
+        }
+      } catch (e) {}
+      var plek = tekst ? tekst.indexOf('#i=') : -1;
+      if (plek >= 0) {
+        stroom.getTracks().forEach(function (t) { t.stop(); }); stroom = null; video.style.display = 'none'; melding.textContent = '';
+        ontvang(tekst.slice(plek + 3));
+        return;
+      }
+      if (tekst) melding.textContent = 'Dit is niet de goede QR-code. Gebruik de code van "Naar telefoon".';
+      requestAnimationFrame(kijk);
+    }
+    kijk();
+  };
+
+  if (hash.indexOf('i=') === 0) { ontvang(hash.slice(2)); return; }
 
   // Versturen: QR-code tonen met de instellingen van dit apparaat
   var data = {};
@@ -54,7 +103,7 @@
     if (k.indexOf(PREFIX) === 0 && k.indexOf('-cache') === -1) data[k] = localStorage.getItem(k);
   }
   if (!Object.keys(data).length) {
-    el.innerHTML = '<p>Op dit apparaat staan geen instellingen. Open deze pagina op het apparaat waar het dashboard wel ingesteld is (je computer).</p>';
+    el.innerHTML = '<p>Op dit apparaat staan nog geen instellingen. Scan hieronder de QR-code van een apparaat waar het dashboard wel is ingesteld.</p>';
     return;
   }
   var link = location.origin + location.pathname + '#i=' + b64encode(JSON.stringify(data));
