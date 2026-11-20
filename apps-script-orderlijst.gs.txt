@@ -84,12 +84,12 @@ function meld_(titel, tekst) {
     try {
       UrlFetchApp.fetch('https://ntfy.sh/' + NTFY_KANAAL, {
         method: 'post', payload: tekst, muteHttpExceptions: true,
-        headers: { 'Title': titel, 'Priority': 'high', 'Tags': 'warning', 'Click': 'https://spectacular-gecko-1f2386.netlify.app/' }
+        headers: { 'Title': titel, 'Priority': 'high', 'Tags': 'warning', 'Click': 'https://woonboulevard-wijchen.github.io/voice-dashboard/' }
       });
     } catch (e) {}
   }
   var naar = MAIL_NAAR || Session.getEffectiveUser().getEmail();
-  MailApp.sendEmail(naar, 'Voice Monitor: ' + titel, tekst + '\n\nDashboard: https://spectacular-gecko-1f2386.netlify.app/');
+  MailApp.sendEmail(naar, 'Voice Monitor: ' + titel, tekst + '\n\nDashboard: https://woonboulevard-wijchen.github.io/voice-dashboard/');
 }
 
 /** EEN KEER UITVOEREN: zet de dagelijkse controle aan en stuurt een testmelding. */
