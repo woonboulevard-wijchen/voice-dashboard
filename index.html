@@ -205,6 +205,8 @@
       </div>
       <button type="button" class="tweede meldknop" onclick="meldingenAan()">🔔 Meldingen toestaan</button>
       <div id="meld-status" class="small"></div>
+      <button type="button" class="primair meldknop" onclick="serverMeldingen()">📲 Ook melden als de app dicht is</button>
+      <div id="server-status" class="small">Stuurt je instellingen een keer naar het script in het ai@-account. Daarna krijg je via de ntfy-app een melding bij meer dan 30% storingen of als een drempel hierboven (standaard 80%) wordt gehaald.</div>
     </fieldset>
 
     <div class="acties">
@@ -225,6 +227,23 @@ function meldStatus(){
   if(!('Notification' in window)){st.textContent='Dit apparaat ondersteunt geen meldingen.';return;}
   st.textContent=Notification.permission==='granted'?'✓ Meldingen staan aan op dit apparaat.':Notification.permission==='denied'?'Meldingen zijn geblokkeerd. Zet ze aan in de instellingen van je telefoon/browser.':'Meldingen staan nog uit.';
 }
+// Stuurt de instellingen naar het Apps Script, zodat het ook controleert als de app dicht is.
+async function serverMeldingen(){
+  const url=$('sh-url').value.trim(),st=$('server-status');
+  if(!url){st.textContent='Vul eerst het Apps Script-adres in (Orderlijst).';return;}
+  opslaan();
+  const d={};['el-key','el-agent','tw-hook','tw-start','mk-hook','make-total','make-begin','make-end','m-el','m-make','m-tw'].forEach(k=>{d[k]=$(k).value.trim();});
+  st.textContent='Bezig met versturen…';
+  try{
+    await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(d)});
+    await new Promise(r=>setTimeout(r,1500));
+    const r=await fetch(url+(url.includes('?')?'&':'?')+'instellingen=1&t='+Date.now());
+    const c=await r.json();
+    const aan=[c.elevenlabs?'ElevenLabs + storingen':null,c.make?'Make':null,c.twilio?'Twilio':null].filter(Boolean);
+    st.textContent=aan.length?'✓ Staat aan voor: '+aan.join(', ')+'. Installeer de app ntfy en abonneer je op wbw-voice-4a76213b16.':'Er is niets aangekomen. Probeer het nog een keer.';
+  }catch(e){st.textContent='Versturen mislukt: '+(e.message||e);}
+}
+
 async function meldingenAan(){
   if(!('Notification' in window))return meldStatus();
   const r=await Notification.requestPermission();

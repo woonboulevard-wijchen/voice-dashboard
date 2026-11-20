@@ -8,6 +8,11 @@
  *     vernieuwd is in het etmaal voor de controle van 9:00. Antwoord: groen of rood.
  *  2. Elke ochtend rond 9:00 controleert het script zelf. Is de lijst niet vernieuwd,
  *     dan stuurt het een pushmelding (ntfy-app) en een e-mail. Ook als het dashboard dicht is.
+ *  3. Elk uur controleert het storingen (meer dan 30% van de gesprekken in 24 uur) en
+ *     het ElevenLabs-verbruik; elke 6 uur het Make- en Twilio-verbruik (die kosten een paar
+ *     Make-credits per keer). Bij 80% of meer: een pushmelding.
+ *     De sleutels hiervoor stuurt het dashboard een keer via de knop
+ *     "Meldingen ook als de app dicht is" en staan alleen in de Scripteigenschappen.
  */
 
 // ===== Instellingen (alleen aanpassen als het nodig is) =====
@@ -17,12 +22,21 @@ var CONTROLE_UUR = 9;                   // dagelijkse controle om 9:00
 var NTFY_KANAAL = 'wbw-voice-4a76213b16'; // pushmeldingen via de gratis ntfy-app (leeg = geen push)
 var MAIL_NAAR = '';                     // leeg = mail naar het account dat het script draait (ai@)
 var TZ = 'Europe/Amsterdam';
+var STORING_DREMPEL = 30;               // % gesprekken met een storing (24 uur)
+var MIN_GESPREKKEN = 3;                 // pas melden vanaf dit aantal gesprekken
+var VERBRUIK_DREMPEL = 80;              // standaard %; het dashboard kan per dienst een eigen % meesturen
 // =============================================================
 
 /** Web-app: geeft de status als JSON terug aan het dashboard. */
-function doGet() {
+function doGet(e) {
   var uit;
-  try { uit = status_(); } catch (e) { uit = { fout: String(e.message || e) }; }
+  if (e && e.parameter && e.parameter.instellingen) {
+    var p = PropertiesService.getScriptProperties();
+    uit = { elevenlabs: !!p.getProperty('el-key'), make: !!p.getProperty('mk-hook'), twilio: !!p.getProperty('tw-hook'),
+            bijgewerkt: p.getProperty('instellingen-tijd') || null };
+    return ContentService.createTextOutput(JSON.stringify(uit)).setMimeType(ContentService.MimeType.JSON);
+  }
+  try { uit = status_(); } catch (err) { uit = { fout: String(err.message || err) }; }
   return ContentService.createTextOutput(JSON.stringify(uit)).setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -99,8 +113,144 @@ function installeren() {
   });
   ScriptApp.newTrigger('dagelijkseControle').timeBased().everyDays(1)
     .atHour(CONTROLE_UUR).nearMinute(5).inTimezone(TZ).create();
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'verbruikControle') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('verbruikControle').timeBased().everyHours(1).create();
   var s = status_();
   meld_('Testmelding', 'De controle van de orderlijst staat aan. Huidige status: ' + s.status +
     ' (laatst bijgewerkt ' + Utilities.formatDate(new Date(s.gewijzigd), TZ, 'd MMM HH:mm') + ').');
   Logger.log(JSON.stringify(s));
+}
+
+// ================= Verbruik en storingen =================
+
+var VELDEN = ['el-key', 'el-agent', 'tw-hook', 'tw-start', 'mk-hook', 'make-total', 'make-begin', 'make-end', 'm-el', 'm-make', 'm-tw'];
+
+/** Het dashboard stuurt hier een keer de instellingen naartoe. Daarna kan alleen wie de
+ *  huidige ElevenLabs-sleutel kent ze nog aanpassen. */
+function doPost(e) {
+  var p = PropertiesService.getScriptProperties();
+  var d = {};
+  try { d = JSON.parse(e.postData.contents); } catch (x) { return antwoord_({ fout: 'ongeldig' }); }
+  var oud = p.getProperty('el-key');
+  if (oud && d['el-key'] !== oud && d['oude-el-key'] !== oud) return antwoord_({ fout: 'geweigerd' });
+  VELDEN.forEach(function (k) {
+    if (d[k] !== undefined && d[k] !== null) p.setProperty(k, String(d[k]).trim());
+  });
+  p.setProperty('instellingen-tijd', new Date().toISOString());
+  return antwoord_({ ok: true });
+}
+function antwoord_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
+
+function prop_(k) { return PropertiesService.getScriptProperties().getProperty(k) || ''; }
+function drempel_(k) { var v = parseFloat(prop_(k)); return isNaN(v) || v <= 0 ? VERBRUIK_DREMPEL : v; }
+
+/** Een melding per 'periode': pas opnieuw als de sleutel (bijv. de resetdatum) verandert. */
+function eenmalig_(naam, periode, titel, tekst) {
+  var p = PropertiesService.getScriptProperties();
+  var k = 'gemeld-' + naam;
+  if (p.getProperty(k) === String(periode)) return;
+  push_(titel, tekst);
+  p.setProperty(k, String(periode));
+}
+function vergeet_(naam) { PropertiesService.getScriptProperties().deleteProperty('gemeld-' + naam); }
+
+/** Alleen push (geen mail) voor verbruik en storingen. */
+function push_(titel, tekst) {
+  if (!NTFY_KANAAL) return;
+  UrlFetchApp.fetch('https://ntfy.sh/' + NTFY_KANAAL, {
+    method: 'post', payload: tekst, muteHttpExceptions: true,
+    headers: { 'Title': titel, 'Priority': 'high', 'Tags': 'warning', 'Click': 'https://woonboulevard-wijchen.github.io/voice-dashboard/' }
+  });
+}
+
+function el_(pad) {
+  var r = UrlFetchApp.fetch('https://api.elevenlabs.io' + pad, { headers: { 'xi-api-key': prop_('el-key') }, muteHttpExceptions: true });
+  if (r.getResponseCode() !== 200) throw new Error('ElevenLabs HTTP ' + r.getResponseCode());
+  return JSON.parse(r.getContentText());
+}
+
+/** Draait elk uur. */
+function verbruikControle() {
+  var uur = Number(Utilities.formatDate(new Date(), TZ, 'H'));
+  if (prop_('el-key')) {
+    try { controleerEleven_(); } catch (e) { Logger.log(e); }
+    try { controleerStoringen_(); } catch (e) { Logger.log(e); }
+  }
+  if (uur % 6 === 0) {   // Make en Twilio gaan via Make-webhooks (kost credits): 4x per dag
+    try { controleerMake_(); } catch (e) { Logger.log(e); }
+    try { controleerTwilio_(); } catch (e) { Logger.log(e); }
+  }
+}
+
+function controleerEleven_() {
+  var d = el_('/v1/user/subscription');
+  var pct = d.character_count / d.character_limit * 100, grens = drempel_('m-el');
+  var periode = d.next_character_count_reset_unix || 'x';
+  if (pct >= grens) eenmalig_('el', periode, 'ElevenLabs: ' + Math.round(pct) + '% verbruikt',
+    d.character_count.toLocaleString('nl-NL') + ' van ' + d.character_limit.toLocaleString('nl-NL') + ' credits gebruikt (drempel ' + grens + '%).');
+}
+
+function controleerStoringen_() {
+  var agent = prop_('el-agent');
+  if (!agent) return;
+  var sinds = Math.floor(Date.now() / 1000) - 86400;
+  var lijst = (el_('/v1/convai/conversations?agent_id=' + encodeURIComponent(agent) + '&call_start_after_unix=' + sinds + '&page_size=100').conversations) || [];
+  var totaal = lijst.length;
+  if (totaal < MIN_GESPREKKEN) { vergeet_('storing'); return; }
+  var reqs = lijst.slice(0, 60).map(function (x) {
+    return { url: 'https://api.elevenlabs.io/v1/convai/conversations/' + x.conversation_id, headers: { 'xi-api-key': prop_('el-key') }, muteHttpExceptions: true };
+  });
+  var mis = 0, bekeken = 0;
+  for (var i = 0; i < reqs.length; i += 10) {
+    UrlFetchApp.fetchAll(reqs.slice(i, i + 10)).forEach(function (r) {
+      if (r.getResponseCode() !== 200) return;
+      bekeken++;
+      var d = JSON.parse(r.getContentText()), storing = false;
+      (d.transcript || []).forEach(function (t) {
+        (t.tool_results || []).forEach(function (x) {
+          if (!x || !x.is_error) return;
+          var f = typeof x.result_value === 'string' ? x.result_value : JSON.stringify(x.result_value || '');
+          if (!/abandoned due to user input|interrupt/i.test(f)) storing = true;   // onderbroken telt niet
+        });
+      });
+      if (storing) mis++;
+    });
+  }
+  if (!bekeken) return;
+  var pct = mis / bekeken * 100;
+  var dag = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
+  if (pct > STORING_DREMPEL) eenmalig_('storing', dag, 'Storingen: ' + Math.round(pct) + '% van de gesprekken',
+    mis + ' van ' + bekeken + ' gesprekken in de laatste 24 uur hadden een mislukte opzoeking. Kijk in het dashboard bij Mislukte opzoekingen.');
+}
+
+function hook_(k) {
+  var r = UrlFetchApp.fetch(prop_(k), { muteHttpExceptions: true });
+  if (r.getResponseCode() !== 200) throw new Error(k + ' HTTP ' + r.getResponseCode());
+  return JSON.parse(r.getContentText());
+}
+
+function controleerMake_() {
+  var totaal = parseFloat(prop_('make-total')), begin = prop_('make-begin');
+  if (!prop_('mk-hook') || !totaal || !begin) return;
+  var d = hook_('mk-hook');
+  var dagen = String(d.days || '').split(','), cc = String(d.cc || '').split(','), som = 0;
+  dagen.forEach(function (dag, i) { if (dag.slice(0, 10) >= begin) som += parseFloat(cc[i]) || 0; });
+  var gebruikt = Math.round(som) / 100;   // zelfde berekening als het dashboard
+  var pct = gebruikt / totaal * 100, grens = drempel_('m-make');
+  if (pct >= grens) eenmalig_('make', begin + '|' + prop_('make-end'), 'Make: ' + Math.round(pct) + '% verbruikt',
+    gebruikt.toLocaleString('nl-NL') + ' van ' + totaal.toLocaleString('nl-NL') + ' credits gebruikt (drempel ' + grens + '%).');
+}
+
+function controleerTwilio_() {
+  var start = parseFloat(prop_('tw-start'));
+  if (!prop_('tw-hook') || !start) return;
+  var d = hook_('tw-hook');
+  var saldo = parseFloat(d.balance);
+  if (isNaN(saldo)) return;
+  var pct = Math.max(0, start - saldo) / start * 100, grens = drempel_('m-tw');
+  if (pct >= grens) eenmalig_('tw', start, 'Twilio: ' + Math.round(pct) + '% verbruikt',
+    'Saldo nog ' + saldo.toFixed(2) + ' van ' + start.toFixed(2) + ' (drempel ' + grens + '%). Tijd om op te waarderen.');
+  else vergeet_('tw');
 }
