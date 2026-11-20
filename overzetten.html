@@ -29,6 +29,9 @@
     <button type="button" id="scanknop">📷 QR-code scannen</button>
     <video id="video" playsinline muted></video>
     <div id="scanmelding"></div>
+    <p style="font-size:.9rem;margin-top:14px">Lukt scannen niet? Scan de code met de camera-app van je telefoon, kies <b>Link kopiëren</b>, en plak de link hier:</p>
+    <input id="plaklink" placeholder="Plak hier de link" autocomplete="off" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:16px;box-sizing:border-box">
+    <button type="button" id="plakknop" style="margin-top:8px;background:#2563eb">Instellingen opslaan</button>
   </div>
 </main>
 <script src="qrcode.js"></script>
@@ -62,7 +65,7 @@
   document.getElementById('scanknop').onclick = async function () {
     var video = document.getElementById('video'), melding = document.getElementById('scanmelding');
     try {
-      stroom = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      stroom = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } } });
     } catch (e) { melding.textContent = 'Geen toegang tot de camera. Sta de camera toe en probeer opnieuw.'; return; }
     video.srcObject = stroom; video.style.display = 'block'; await video.play();
     melding.textContent = 'Houd de QR-code voor de camera…';
@@ -79,7 +82,7 @@
         if (detector) { var r = await detector.detect(video); if (r.length) tekst = r[0].rawValue; }
         else if (window.jsQR && video.videoWidth) {
           doek.width = video.videoWidth; doek.height = video.videoHeight; ctx.drawImage(video, 0, 0);
-          var q = jsQR(ctx.getImageData(0, 0, doek.width, doek.height).data, doek.width, doek.height); if (q) tekst = q.data;
+          var q = jsQR(ctx.getImageData(0, 0, doek.width, doek.height).data, doek.width, doek.height, { inversionAttempts: 'attemptBoth' }); if (q) tekst = q.data;
         }
       } catch (e) {}
       var plek = tekst ? tekst.indexOf('#i=') : -1;
@@ -92,6 +95,12 @@
       requestAnimationFrame(kijk);
     }
     kijk();
+  };
+
+  document.getElementById('plakknop').onclick = function () {
+    var t = document.getElementById('plaklink').value.trim(), plek = t.indexOf('#i=');
+    if (plek < 0) { document.getElementById('scanmelding').textContent = 'Dit is niet de goede link. Hij moet #i= bevatten.'; return; }
+    ontvang(t.slice(plek + 3)); document.getElementById('plaklink').value = '';
   };
 
   if (hash.indexOf('i=') === 0) { ontvang(hash.slice(2)); return; }
