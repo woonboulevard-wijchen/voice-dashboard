@@ -26,7 +26,10 @@
   <div id="inhoud">Bezig…</div>
   <div class="scan" id="scanblok">
     <p><b>Instellingen ophalen van een ander apparaat</b><br>Open op het andere apparaat "Naar telefoon" (mag ook de oude site zijn), en scan die QR-code hier.</p>
-    <button type="button" id="scanknop">📷 QR-code scannen</button>
+    <button type="button" id="fotoknop" style="background:#7c3aed;margin-bottom:8px">🖼️ Kies een screenshot van de QR-code</button>
+    <input type="file" id="fotobestand" accept="image/*" style="display:none">
+    <div style="font-size:.85rem;color:#475569;margin-bottom:10px">Of maak een schermknipsel van de QR-code en druk hier op Ctrl+V.</div>
+    <button type="button" id="scanknop">📷 QR-code scannen met de camera</button>
     <video id="video" playsinline muted></video>
     <div id="scanmelding"></div>
     <p style="font-size:.9rem;margin-top:14px">Lukt scannen niet? Scan de code met de camera-app van je telefoon, kies <b>Link kopiëren</b>, en plak de link hier:</p>
@@ -96,6 +99,34 @@
     }
     kijk();
   };
+
+  // QR uit een afbeelding lezen (screenshot kiezen of plakken)
+  function laadJsQR() {
+    if (window.jsQR) return Promise.resolve();
+    return new Promise(function (ok, fout) { var s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js'; s.onload = ok; s.onerror = fout; document.head.appendChild(s); });
+  }
+  function leesAfbeelding(bestand) {
+    var melding = document.getElementById('scanmelding');
+    melding.textContent = 'Code lezen…';
+    laadJsQR().then(function () {
+      var img = new Image();
+      img.onload = function () {
+        var c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+        var x = c.getContext('2d'); x.drawImage(img, 0, 0);
+        var q = jsQR(x.getImageData(0, 0, c.width, c.height).data, c.width, c.height, { inversionAttempts: 'attemptBoth' });
+        var t = q ? q.data : '', plek = t.indexOf('#i=');
+        if (plek < 0) { melding.textContent = 'Geen goede QR-code gevonden in deze afbeelding.'; return; }
+        melding.textContent = ''; ontvang(t.slice(plek + 3));
+      };
+      img.src = URL.createObjectURL(bestand);
+    }).catch(function () { melding.textContent = 'Kon de QR-lezer niet laden. Controleer de internetverbinding.'; });
+  }
+  document.getElementById('fotoknop').onclick = function () { document.getElementById('fotobestand').click(); };
+  document.getElementById('fotobestand').onchange = function (e) { if (e.target.files[0]) leesAfbeelding(e.target.files[0]); };
+  document.addEventListener('paste', function (e) {
+    var items = (e.clipboardData || {}).items || [];
+    for (var i = 0; i < items.length; i++) if (items[i].type.indexOf('image') === 0) { e.preventDefault(); leesAfbeelding(items[i].getAsFile()); return; }
+  });
 
   document.getElementById('plakknop').onclick = function () {
     var t = document.getElementById('plaklink').value.trim(), plek = t.indexOf('#i=');
