@@ -607,7 +607,7 @@ function feestdagen(j){
   let kd=new Date(j,3,27);if(kd.getDay()===0)kd=new Date(j,3,26);
   const l=[[j+'-01-01','Nieuwjaarsdag'],[plus(-2),'Goede Vrijdag'],[plus(0),'Eerste Paasdag'],[plus(1),'Tweede Paasdag'],
     [sdISO(kd),'Koningsdag'],[j+'-05-05','Bevrijdingsdag'],[plus(39),'Hemelvaartsdag'],[plus(49),'Eerste Pinksterdag'],
-    [plus(50),'Tweede Pinksterdag'],[j+'-12-24','Kerstavond'],[j+'-12-25','Eerste Kerstdag'],[j+'-12-26','Tweede Kerstdag'],[j+'-12-31','Oudejaarsdag']];
+    [plus(50),'Tweede Pinksterdag'],[sdISO(new Date(j,6,1+(9-new Date(j,6,1).getDay())%7+14+3)),'Intocht Vierdaagse'],[j+'-12-24','Kerstavond'],[j+'-12-25','Eerste Kerstdag'],[j+'-12-26','Tweede Kerstdag'],[j+'-12-31','Oudejaarsdag']];
   return l.map(([datum,naam])=>({datum,naam}));
 }
 function sdFeestnaam(datum){const j=+datum.slice(0,4);const f=feestdagen(j).find(x=>x.datum===datum);return f?f.naam:'';}
