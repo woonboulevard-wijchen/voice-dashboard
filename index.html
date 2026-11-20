@@ -21,7 +21,8 @@
   header{background:linear-gradient(180deg,#1e293b,#273449);color:#fff;
          padding:calc(14px + env(safe-area-inset-top)) 16px 46px;display:flex;align-items:center;gap:12px}
   .logo{height:30px;width:auto;display:block;flex:none;filter:brightness(0) invert(1)}
-  .titel{display:flex;align-items:baseline;gap:10px;min-width:0;flex-wrap:wrap}
+  .titel{display:flex;align-items:baseline;gap:8px;min-width:0}
+  @media (max-width:420px){.logo{height:24px}header{gap:10px}header h1{font-size:14px}}
   header h1{margin:0;font-size:15px;font-weight:600;letter-spacing:.2px;opacity:.95;white-space:nowrap}
   header .sub{font-size:12px;opacity:.75;white-space:nowrap}
   header .ruimte{flex:1}
@@ -112,7 +113,7 @@
   <img class="logo" src="https://www.woonboulevardwijchen.nl/media/logo/stores/1/WBW-Logo-Zwart-2_2_.png" alt="Woonboulevard Wijchen" onerror="this.remove()">
   <div class="titel">
     <h1>Voice Monitor</h1>
-    <div class="sub">🕒 <span id="laatste">nog niet</span></div>
+    <div class="sub"><span id="laatste">nog niet</span></div>
   </div>
   <div class="ruimte"></div>
   <button class="rond" onclick="controleer()" title="Nu controleren" aria-label="Nu controleren">↻</button>
