@@ -1,4 +1,4 @@
-const CACHE = 'voice-dashboard-v16';
+const CACHE = 'voice-dashboard-v17';
 const BESTANDEN = [
   './', './index.html', './manifest.json', './icon.svg', './overzetten.html', './qrcode.js',
   './icon-192.png', './icon-512.png', './icon-maskable-192.png', './icon-maskable-512.png'
@@ -21,7 +21,7 @@ self.addEventListener('fetch', e => {
   // Aanroepen naar ElevenLabs, Twilio en Make nooit cachen
   if (url.origin !== location.origin) return;
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, {cache: 'no-store'})
       .catch(() => caches.match(e.request)
         .then(r => r || (e.request.mode === 'navigate' ? caches.match('./index.html') : undefined)))
   );

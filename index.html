@@ -19,13 +19,21 @@
   body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);margin:0;color:var(--tekst);
        padding-bottom:calc(84px + env(safe-area-inset-bottom))}
   header{background:linear-gradient(180deg,#1e293b,#273449);color:#fff;
-         padding:calc(14px + env(safe-area-inset-top)) 16px 46px;display:flex;align-items:center;gap:12px}
-  .logo{height:30px;width:auto;display:block;flex:none;filter:brightness(0) invert(1)}
-  .titel{display:flex;align-items:baseline;gap:8px;min-width:0}
-  @media (max-width:420px){.logo{height:24px}header{gap:10px}header h1{font-size:14px}}
-  header h1{margin:0;font-size:15px;font-weight:600;letter-spacing:.2px;opacity:.95;white-space:nowrap}
+         padding:calc(14px + env(safe-area-inset-top)) 16px 46px;
+         display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px}
+  .logo{height:52px;width:auto;display:block;justify-self:start;filter:brightness(0) invert(1)}
+  .titel{display:flex;align-items:baseline;gap:8px;min-width:0;justify-self:center}
+  header h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.2px;white-space:nowrap}
   header .sub{font-size:12px;opacity:.75;white-space:nowrap}
-  header .ruimte{flex:1}
+  header .rond{justify-self:end}
+  /* telefoon: alles links naast elkaar, logo blijft groter dan de tekst */
+  @media (max-width:640px){
+    header{display:flex;gap:12px}
+    .logo{height:34px;flex:none}
+    header h1{font-size:15px}
+    header .rond{margin-left:auto;flex:none}
+  }
+  @media (max-width:380px){.logo{height:28px}header h1{font-size:14px}header{gap:9px}}
   .rond{width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.12);color:#fff;font-size:20px;
         cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .4s}
   .rond:active{transform:rotate(180deg)}
@@ -115,7 +123,6 @@
     <h1>Voice Monitor</h1>
     <div class="sub"><span id="laatste">nog niet</span></div>
   </div>
-  <div class="ruimte"></div>
   <button class="rond" onclick="controleer()" title="Nu controleren" aria-label="Nu controleren">↻</button>
 </header>
 
@@ -656,7 +663,15 @@ async function controleer(){
   await Promise.all([checkGesprekken(),checkEleven(),checkTwilio(),checkMake(),checkSheet(),sdLaden()]);
   $('laatste').textContent=new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
 }
-if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
+// Nieuwe versie van de app: meteen ophalen en een keer herladen.
+if('serviceWorker' in navigator){
+  const hadController=!!navigator.serviceWorker.controller;let herladen=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadController&&!herladen){herladen=true;location.reload();}});
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{
+    reg.update().catch(()=>{});
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)reg.update().catch(()=>{});});
+  }).catch(()=>{});
+}
 laden();
 // eerste keer zonder instellingen: meteen het instellingen-venster openen
 if(!$('el-key').value&&!$('tw-hook').value&&!$('mk-hook').value&&!$('sh-url').value){try{$('instellingen').showModal();}catch(e){}}
