@@ -20,9 +20,10 @@
        padding-bottom:calc(84px + env(safe-area-inset-bottom))}
   header{background:linear-gradient(180deg,#1e293b,#273449);color:#fff;
          padding:calc(14px + env(safe-area-inset-top)) 16px 46px;display:flex;align-items:center;gap:12px}
-  .logo{height:30px;width:auto;display:block;margin-bottom:6px;filter:brightness(0) invert(1)}
-  header h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.2px}
-  header .sub{font-size:12px;opacity:.85;margin-top:2px}
+  .logo{height:30px;width:auto;display:block;flex:none;filter:brightness(0) invert(1)}
+  .titel{display:flex;align-items:baseline;gap:10px;min-width:0;flex-wrap:wrap}
+  header h1{margin:0;font-size:15px;font-weight:600;letter-spacing:.2px;opacity:.95;white-space:nowrap}
+  header .sub{font-size:12px;opacity:.75;white-space:nowrap}
   header .ruimte{flex:1}
   .rond{width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.12);color:#fff;font-size:20px;
         cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .4s}
@@ -108,10 +109,10 @@
 </head>
 <body>
 <header>
-  <div>
-    <img class="logo" src="https://www.woonboulevardwijchen.nl/media/logo/stores/1/WBW-Logo-Zwart-2_2_.png" alt="Woonboulevard Wijchen" onerror="this.remove()">
+  <img class="logo" src="https://www.woonboulevardwijchen.nl/media/logo/stores/1/WBW-Logo-Zwart-2_2_.png" alt="Woonboulevard Wijchen" onerror="this.remove()">
+  <div class="titel">
     <h1>Voice Monitor</h1>
-    <div class="sub">Woonboulevard Wijchen · <span id="laatste">nog niet</span></div>
+    <div class="sub">🕒 <span id="laatste">nog niet</span></div>
   </div>
   <div class="ruimte"></div>
   <button class="rond" onclick="controleer()" title="Nu controleren" aria-label="Nu controleren">↻</button>
