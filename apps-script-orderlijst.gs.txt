@@ -1,0 +1,106 @@
+/**
+ * Voice Monitor - controle orderlijst + meldingen als de app dicht is
+ * Plakken in een nieuw Apps Script-project in het ai@woonboulevardwijchen.nl-account.
+ * Kost geen Make-credits.
+ *
+ * Wat het doet:
+ *  1. Het dashboard vraagt dit script (web-app) of de Sheet AI_verkooporders
+ *     vernieuwd is in het etmaal voor de controle van 9:00. Antwoord: groen of rood.
+ *  2. Elke ochtend rond 9:00 controleert het script zelf. Is de lijst niet vernieuwd,
+ *     dan stuurt het een pushmelding (ntfy-app) en een e-mail. Ook als het dashboard dicht is.
+ */
+
+// ===== Instellingen (alleen aanpassen als het nodig is) =====
+var SHEET_NAAM = 'AI_verkooporders';   // wordt in Drive op naam gezocht
+var SHEET_ID = '151ac7DUGJdmogNra2ayQp_AOY-zF5IVLishlvj_Ep9w'; // AI_verkooporders
+var CONTROLE_UUR = 9;                   // dagelijkse controle om 9:00
+var NTFY_KANAAL = 'wbw-voice-4a76213b16'; // pushmeldingen via de gratis ntfy-app (leeg = geen push)
+var MAIL_NAAR = '';                     // leeg = mail naar het account dat het script draait (ai@)
+var TZ = 'Europe/Amsterdam';
+// =============================================================
+
+/** Web-app: geeft de status als JSON terug aan het dashboard. */
+function doGet() {
+  var uit;
+  try { uit = status_(); } catch (e) { uit = { fout: String(e.message || e) }; }
+  return ContentService.createTextOutput(JSON.stringify(uit)).setMimeType(ContentService.MimeType.JSON);
+}
+
+/** Groen als de Sheet is bijgewerkt na (laatste controle van 9:00 min 24 uur). */
+function status_() {
+  var bestand = sheet_();
+  var gewijzigd = bestand.getLastUpdated();
+  var controle = laatsteControle_(new Date());
+  var grens = new Date(controle.getTime() - 24 * 3600 * 1000);
+  return {
+    status: gewijzigd.getTime() >= grens.getTime() ? 'groen' : 'rood',
+    gewijzigd: gewijzigd.toISOString(),
+    controle: controle.toISOString(),
+    naam: bestand.getName()
+  };
+}
+
+function sheet_() {
+  if (SHEET_ID) return DriveApp.getFileById(SHEET_ID);
+  var it = DriveApp.getFilesByName(SHEET_NAAM);
+  var beste = null;
+  while (it.hasNext()) {
+    var f = it.next();
+    if (f.isTrashed()) continue;
+    if (!beste || f.getLastUpdated() > beste.getLastUpdated()) beste = f;
+  }
+  if (!beste) throw new Error('Sheet "' + SHEET_NAAM + '" niet gevonden in de Drive van dit account');
+  return beste;
+}
+
+/** Het meest recente controlemoment (vandaag 9:00 als het al 9:00 is geweest, anders gisteren 9:00), in NL-tijd. */
+function laatsteControle_(nu) {
+  var dag = Utilities.formatDate(nu, TZ, 'yyyy-MM-dd');
+  var uur = Number(Utilities.formatDate(nu, TZ, 'H'));
+  var d = new Date(nu.getTime());
+  if (uur < CONTROLE_UUR) d = new Date(nu.getTime() - 24 * 3600 * 1000);
+  dag = Utilities.formatDate(d, TZ, 'yyyy-MM-dd');
+  var offset = Utilities.formatDate(d, TZ, 'XXX'); // +01:00 of +02:00
+  var hh = (CONTROLE_UUR < 10 ? '0' : '') + CONTROLE_UUR;
+  return new Date(dag + 'T' + hh + ':00:00' + offset);
+}
+
+/** Draait elke ochtend rond 9:00 (via de trigger). */
+function dagelijkseControle() {
+  var s;
+  try { s = status_(); } catch (e) {
+    meld_('Orderlijst: controle mislukt', String(e.message || e));
+    return;
+  }
+  if (s.status === 'rood') {
+    var wanneer = Utilities.formatDate(new Date(s.gewijzigd), TZ, "EEEE d MMMM 'om' HH:mm");
+    meld_('Orderlijst niet vernieuwd',
+      'De Google Sheet ' + s.naam + ' is niet vernieuwd sinds ' + wanneer + '. De voice-assistent werkt met oude ordergegevens.');
+  }
+}
+
+function meld_(titel, tekst) {
+  if (NTFY_KANAAL) {
+    try {
+      UrlFetchApp.fetch('https://ntfy.sh/' + NTFY_KANAAL, {
+        method: 'post', payload: tekst, muteHttpExceptions: true,
+        headers: { 'Title': titel, 'Priority': 'high', 'Tags': 'warning', 'Click': 'https://spectacular-gecko-1f2386.netlify.app/' }
+      });
+    } catch (e) {}
+  }
+  var naar = MAIL_NAAR || Session.getEffectiveUser().getEmail();
+  MailApp.sendEmail(naar, 'Voice Monitor: ' + titel, tekst + '\n\nDashboard: https://spectacular-gecko-1f2386.netlify.app/');
+}
+
+/** EEN KEER UITVOEREN: zet de dagelijkse controle aan en stuurt een testmelding. */
+function installeren() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'dagelijkseControle') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('dagelijkseControle').timeBased().everyDays(1)
+    .atHour(CONTROLE_UUR).nearMinute(5).inTimezone(TZ).create();
+  var s = status_();
+  meld_('Testmelding', 'De controle van de orderlijst staat aan. Huidige status: ' + s.status +
+    ' (laatst bijgewerkt ' + Utilities.formatDate(new Date(s.gewijzigd), TZ, 'd MMM HH:mm') + ').');
+  Logger.log(JSON.stringify(s));
+}

@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Voice Assistent Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e293b">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --bg:#eef1f8;--kaart:#fff;--tekst:#0f172a;--zacht:#64748b;
+    --groen:#16a34a;--groen-l:#dcfce7;--oranje:#ea580c;--oranje-l:#ffedd5;--rood:#dc2626;--rood-l:#fee2e2;
+    --grijs-l:#e2e8f0;
+  }
+  *{box-sizing:border-box}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);margin:0;color:var(--tekst);
+       padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+  header{background:linear-gradient(180deg,#1e293b,#273449);color:#fff;
+         padding:calc(14px + env(safe-area-inset-top)) 16px 46px;display:flex;align-items:center;gap:12px}
+  header h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.2px}
+  header .sub{font-size:12px;opacity:.85;margin-top:2px}
+  header .ruimte{flex:1}
+  .rond{width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.12);color:#fff;font-size:20px;
+        cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .4s}
+  .rond:active{transform:rotate(180deg)}
+  main{max-width:960px;margin:-34px auto 0;padding:0 12px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  @media (min-width:760px){.grid{grid-template-columns:repeat(3,1fr)}}
+  .card{background:var(--kaart);border-radius:16px;padding:12px 14px;box-shadow:0 2px 10px rgba(15,23,42,.07);
+        border-top:5px solid var(--grijs-l);position:relative;min-width:0}
+  .card:has(.dot.groen){border-top-color:var(--groen)}
+  .card:has(.dot.oranje){border-top-color:var(--oranje);background:linear-gradient(#fff 55%,var(--oranje-l))}
+  .card:has(.dot.rood){border-top-color:var(--rood);background:linear-gradient(#fff 55%,var(--rood-l))}
+  .kop{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--zacht);text-transform:uppercase;letter-spacing:.4px}
+  .ico{font-size:15px}
+  .dot{width:10px;height:10px;border-radius:50%;background:#cbd5e1;margin-left:auto;flex:none}
+  .dot.groen{background:var(--groen);box-shadow:0 0 0 3px var(--groen-l)}
+  .dot.oranje{background:var(--oranje);box-shadow:0 0 0 3px var(--oranje-l)}
+  .dot.rood{background:var(--rood);box-shadow:0 0 0 3px var(--rood-l)}
+  .groot{font-size:28px;font-weight:800;margin:6px 0 2px;line-height:1.1;font-variant-numeric:tabular-nums}
+  .groot.groen{color:var(--groen)}.groot.oranje{color:var(--oranje)}.groot.rood{color:var(--rood)}
+  .groot.woord{font-size:19px}
+  .bar{height:8px;background:var(--grijs-l);border-radius:4px;overflow:hidden;margin:8px 0 6px}
+  .fill{height:100%;width:0;background:var(--groen);border-radius:4px;transition:width .6s,background .6s}
+  .fill.oranje{background:var(--oranje)}.fill.rood{background:var(--rood)}
+  .small{font-size:12px;color:var(--zacht);line-height:1.35}
+  .fout{color:var(--rood);font-size:12px;margin-top:4px;word-break:break-word}
+  .fout:empty{display:none}
+  .breed{grid-column:1/-1}
+  .legenda{display:flex;gap:6px;margin-left:auto;text-transform:none;letter-spacing:0}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  td{padding:7px 6px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+  td:first-child{white-space:nowrap;color:var(--zacht);font-size:12px}
+  tr.fout-rij td:first-child{box-shadow:inset 3px 0 0 var(--rood)}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:var(--rood-l);color:#991b1b;margin-right:6px}
+  .badge.onderbroken{background:var(--grijs-l);color:#334155}
+  .wat{display:block;font-size:11px;color:var(--zacht);margin-top:2px}
+  .tabelwrap{overflow-x:auto}
+  .leeg{color:var(--groen);font-weight:600;text-align:center;padding:14px}
+
+  /* instellingen */
+  .onder{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+         background:linear-gradient(transparent,var(--bg) 40%);display:flex;justify-content:center;pointer-events:none}
+  .knop{pointer-events:auto;border:0;border-radius:999px;padding:12px 22px;font-size:15px;font-weight:600;cursor:pointer;
+        background:#1e293b;color:#fff;box-shadow:0 4px 14px rgba(15,23,42,.25)}
+  dialog{border:0;border-radius:20px 20px 0 0;padding:0;width:100%;max-width:560px;max-height:88vh;margin:auto auto 0;
+         box-shadow:0 -8px 30px rgba(0,0,0,.2)}
+  @media (min-width:600px){dialog{border-radius:20px;margin:auto}}
+  dialog::backdrop{background:rgba(15,23,42,.45)}
+  .dkop{position:sticky;top:0;background:#fff;padding:16px 18px 10px;display:flex;align-items:center;border-bottom:1px solid #f1f5f9}
+  .dkop h2{margin:0;font-size:18px;flex:1}
+  .dkop button{border:0;background:var(--grijs-l);width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer}
+  .dinhoud{padding:6px 18px 20px}
+  fieldset{border:0;border-left:4px solid;padding:2px 0 2px 12px;margin:14px 0}
+  legend{font-weight:700;font-size:14px;padding:0;margin-bottom:2px}
+  .f-el{border-color:#2563eb}.f-tw{border-color:#0891b2}.f-mk{border-color:#64748b}
+  label{display:block;font-size:12px;margin-top:8px;color:#475569}
+  input{width:100%;padding:9px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:16px;background:#f8fafc}
+  input:focus{outline:2px solid #a5b4fc;border-color:#6366f1;background:#fff}
+  .rij{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .rij>div{min-width:0}
+  .rij3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.rij3>div{min-width:0}
+  .f-ml{border-color:#f59e0b}.f-sh{border-color:#16a34a}
+  .meldknop{width:100%;margin-top:10px;border:0;border-radius:10px;padding:10px;font-size:14px;font-weight:600;cursor:pointer}
+  .twee{grid-column:span 2}
+  .acties{display:flex;gap:8px;margin-top:16px}
+  .acties button,.acties a{flex:1;border:0;border-radius:10px;padding:12px;font-size:15px;font-weight:600;cursor:pointer;text-align:center;text-decoration:none}
+  .primair{background:#2563eb;color:#fff}
+  .tweede{background:var(--grijs-l);color:var(--tekst)}
+  .noot{font-size:11px;color:var(--zacht);margin-top:12px;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Voice Monitor</h1>
+    <div class="sub">Woonboulevard Wijchen · <span id="laatste">nog niet</span></div>
+  </div>
+  <div class="ruimte"></div>
+  <button class="rond" onclick="controleer()" title="Nu controleren" aria-label="Nu controleren">↻</button>
+</header>
+
+<main>
+<div class="grid">
+  <div class="card">
+    <div class="kop"><span class="ico">🎙️</span>Assistent<span id="dot-voice" class="dot"></span></div>
+    <div id="voice-status" class="groot woord">–</div>
+    <div id="voice-detail" class="small"></div>
+    <div id="voice-fout" class="fout"></div>
+  </div>
+
+  <div class="card">
+    <div class="kop"><span class="ico">⚠️</span>Storingen 24u<span id="dot-tool" class="dot"></span></div>
+    <div id="tool-groot" class="groot">–</div>
+    <div id="tool-tekst" class="small"></div>
+    <div id="tool-fout" class="fout"></div>
+  </div>
+
+  <div class="card">
+    <div class="kop"><span class="ico">🗣️</span>ElevenLabs<span id="dot-el" class="dot"></span></div>
+    <div id="el-groot" class="groot">–</div>
+    <div class="bar"><div id="fill-el" class="fill"></div></div>
+    <div id="el-tekst" class="small"></div>
+    <div id="el-prognose" class="small"></div>
+    <div id="el-fout" class="fout"></div>
+  </div>
+
+  <div class="card">
+    <div class="kop"><span class="ico">⚙️</span>Make<span id="dot-make" class="dot"></span></div>
+    <div id="make-groot" class="groot">–</div>
+    <div class="bar"><div id="fill-make" class="fill"></div></div>
+    <div id="make-tekst" class="small"></div>
+    <div id="make-prognose" class="small"></div>
+    <div id="make-fout" class="fout"></div>
+  </div>
+
+  <div class="card">
+    <div class="kop"><span class="ico">📞</span>Twilio<span id="dot-tw" class="dot"></span></div>
+    <div id="tw-groot" class="groot">–</div>
+    <div class="bar"><div id="fill-tw" class="fill"></div></div>
+    <div id="tw-tekst" class="small"></div>
+    <div id="tw-prognose" class="small"></div>
+    <div id="tw-fout" class="fout"></div>
+  </div>
+
+  <div class="card">
+    <div class="kop"><span class="ico">📋</span>Orderlijst<span id="dot-sh" class="dot"></span></div>
+    <div id="sh-groot" class="groot woord">–</div>
+    <div id="sh-tekst" class="small"></div>
+    <div id="sh-fout" class="fout"></div>
+  </div>
+
+  <div class="card breed">
+    <div class="kop"><span class="ico">🔎</span>Mislukte opzoekingen
+      <span class="legenda"><span class="badge">Storing</span><span class="badge onderbroken" title="Beller praatte door, geen storing">Onderbroken</span></span>
+    </div>
+    <div class="tabelwrap"><table>
+      <tbody id="tool-rijen"><tr><td colspan="2" class="small">Nog niet opgehaald</td></tr></tbody>
+    </table></div>
+  </div>
+</div>
+</main>
+
+<div class="onder"><button class="knop" onclick="meldStatus();$('instellingen').showModal()">⚙️ Instellingen</button></div>
+
+<dialog id="instellingen">
+  <div class="dkop"><h2>Instellingen</h2><button onclick="$('instellingen').close()" aria-label="Sluiten">✕</button></div>
+  <div class="dinhoud">
+    <fieldset class="f-el"><legend>🗣️ ElevenLabs</legend>
+      <label>API-sleutel</label><input id="el-key" type="password" autocomplete="off">
+      <label>Agent-ID</label><input id="el-agent" autocomplete="off">
+    </fieldset>
+
+    <fieldset class="f-tw"><legend>📞 Twilio</legend>
+      <label>Make-webhook (saldo)</label><input id="tw-hook" placeholder="https://hook.eu1.make.com/...">
+      <div class="rij">
+        <div><label>Startsaldo ($)</label><input id="tw-start" type="number" step="0.01"></div>
+        <div><label>Dagen</label><input id="tw-dagen" type="number" value="30"></div>
+      </div>
+    </fieldset>
+
+    <fieldset class="f-mk"><legend>⚙️ Make</legend>
+      <label>Make-webhook (credits)</label><input id="mk-hook" placeholder="https://hook.eu1.make.com/...">
+      <div class="rij">
+        <div><label>Totaal credits</label><input id="make-total" type="number"></div>
+        <div><label>Gebruikt (reserve)</label><input id="make-used" type="number"></div>
+        <div><label>Start periode</label><input id="make-begin" type="date"></div>
+        <div><label>Einde periode</label><input id="make-end" type="date"></div>
+      </div>
+    </fieldset>
+
+    <fieldset class="f-sh"><legend>📋 Orderlijst (Google Sheet)</legend>
+      <label>Apps Script-adres (eindigt op /exec)</label><input id="sh-url" value="https://script.google.com/macros/s/AKfycbySPRMY727f5hGEtVv6YFE3VLhHMbxS23MhlxsdgrPHcc7v3QLIg26zMEz2ewBtjf9a/exec" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off">
+    </fieldset>
+
+    <fieldset class="f-ml"><legend>🔔 Meldingen</legend>
+      <label>Melding als het verbruik dit percentage haalt (leeg = geen melding)</label>
+      <div class="rij3">
+        <div><label>ElevenLabs %</label><input id="m-el" type="number" min="1" max="100" placeholder="80"></div>
+        <div><label>Make %</label><input id="m-make" type="number" min="1" max="100" placeholder="80"></div>
+        <div><label>Twilio %</label><input id="m-tw" type="number" min="1" max="100" placeholder="80"></div>
+      </div>
+      <button type="button" class="tweede meldknop" onclick="meldingenAan()">🔔 Meldingen toestaan</button>
+      <div id="meld-status" class="small"></div>
+    </fieldset>
+
+    <div class="acties">
+      <button class="primair" onclick="opslaan();$('instellingen').close()">Opslaan</button>
+      <a class="tweede" href="overzetten.html">📱 Naar telefoon</a>
+    </div>
+    <div class="noot">Alleen opgeslagen op dit apparaat.</div>
+  </div>
+</dialog>
+
+<script>
+const velden=['el-key','el-agent','tw-hook','tw-start','tw-dagen','mk-hook','make-used','make-total','make-end','make-begin','m-el','m-make','m-tw','sh-url'];
+const NAMEN={el:'ElevenLabs',make:'Make',tw:'Twilio'};
+
+// Meldingen: werkt zolang de app open is of op de achtergrond nog draait (controle elke 5 minuten).
+function meldStatus(){
+  const st=$('meld-status');if(!st)return;
+  if(!('Notification' in window)){st.textContent='Dit apparaat ondersteunt geen meldingen.';return;}
+  st.textContent=Notification.permission==='granted'?'✓ Meldingen staan aan op dit apparaat.':Notification.permission==='denied'?'Meldingen zijn geblokkeerd. Zet ze aan in de instellingen van je telefoon/browser.':'Meldingen staan nog uit.';
+}
+async function meldingenAan(){
+  if(!('Notification' in window))return meldStatus();
+  const r=await Notification.requestPermission();
+  meldStatus();
+  if(r==='granted')toon('Meldingen staan aan','Je krijgt een melding als een drempel wordt gehaald.');
+}
+async function toon(titel,tekst){
+  const opties={body:tekst,icon:'icon-192.png',badge:'icon-192.png',tag:titel};
+  try{const reg=await navigator.serviceWorker.getRegistration();if(reg){await reg.showNotification(titel,opties);return;}}catch(e){}
+  try{new Notification(titel,opties);}catch(e){}
+}
+// Een melding per drempel: pas opnieuw nadat het verbruik weer onder de drempel is gezakt (nieuwe periode).
+function melden(prefix,gebruiktFrac){
+  const grens=parseFloat(($('m-'+prefix)||{}).value);
+  if(!grens||isNaN(gebruiktFrac))return;
+  const sleutel='vd_meld-'+prefix+'-cache';
+  const pct=gebruiktFrac*100;
+  let gemeld=null;try{gemeld=localStorage.getItem(sleutel);}catch(e){}
+  if(pct>=grens){
+    if(gemeld!==String(grens)&&'Notification' in window&&Notification.permission==='granted'){
+      toon(NAMEN[prefix]+': '+Math.round(pct)+'% verbruikt','De drempel van '+grens+'% is gehaald.');
+      try{localStorage.setItem(sleutel,String(grens));}catch(e){}
+    }
+  }else{try{localStorage.removeItem(sleutel);}catch(e){}}
+}
+const $=id=>document.getElementById(id);
+const EL='https://api.elevenlabs.io';
+const detailCache=new Map();
+
+function laden(){velden.forEach(v=>{try{const w=localStorage.getItem('vd_'+v);if(w!==null)$(v).value=w;}catch(e){}});}
+function opslaan(){velden.forEach(v=>{try{localStorage.setItem('vd_'+v,$(v).value);}catch(e){}});controleer();}
+function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+// kleur: verbruikt-% t.o.v. verstreken-% van de periode
+function kleur(gebruiktFrac,verstrekenFrac){
+  if(gebruiktFrac>=0.95)return 'rood';
+  const prognose=verstrekenFrac>0.02?gebruiktFrac/verstrekenFrac:gebruiktFrac;
+  if(prognose>1.0)return 'rood';
+  if(prognose>0.8)return 'oranje';
+  return 'groen';
+}
+function zet(prefix,gebruiktFrac,verstrekenFrac,tekst,prog){
+  const k=kleur(gebruiktFrac,verstrekenFrac);
+  const f=$('fill-'+prefix);f.style.width=Math.min(100,gebruiktFrac*100)+'%';f.className='fill '+k;
+  $('dot-'+prefix).className='dot '+k;
+  $(prefix+'-tekst').textContent=tekst;
+  $(prefix+'-prognose').textContent=prog;
+  const g=$(prefix+'-groot');g.textContent=Math.round(gebruiktFrac*100)+'%';g.className='groot '+k;
+  melden(prefix,gebruiktFrac);
+}
+function progTekst(gebruiktFrac,verstrekenFrac){
+  if(verstrekenFrac<=0.02)return 'Prognose: nog te vroeg';
+  const p=gebruiktFrac/verstrekenFrac*100;
+  return 'Prognose '+p.toFixed(0)+'% '+(p>100?'⚠️ past niet':'✓');
+}
+
+async function elGet(pad){
+  const key=$('el-key').value.trim();
+  const r=await fetch(EL+pad,{headers:{'xi-api-key':key}});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
+// Gesprekken van de laatste 24 uur, met en zonder mislukte tool-aanroepen.
+// Kost geen Make-credits: dit zijn alleen leesverzoeken bij ElevenLabs.
+async function checkGesprekken(){
+  const key=$('el-key').value.trim(),agent=$('el-agent').value.trim();
+  if(!key||!agent){
+    $('voice-status').textContent='Instellen';$('voice-detail').textContent='Vul ElevenLabs in bij Instellingen';
+    $('dot-voice').className='dot';$('dot-tool').className='dot';
+    return;
+  }
+  const sinds=Math.floor(Date.now()/1000)-86400;
+  try{
+    // 1. alle gesprekken van de laatste 24 uur
+    const alle=await elGet('/v1/convai/conversations?agent_id='+encodeURIComponent(agent)+'&call_start_after_unix='+sinds+'&page_size=100');
+    const lijst=alle.conversations||[];
+    // 2. details van de gesprekken ophalen, in groepjes van 5 om ElevenLabs niet te overbelasten.
+    // Een afgerond gesprek verandert niet meer, dus die bewaren we tot de pagina wordt ververst.
+    const kandidaten=lijst.slice(0,60);
+    const teHalen=kandidaten.filter(x=>{const c=detailCache.get(x.conversation_id);return !(c&&c.status==='done');});
+    for(let i=0;i<teHalen.length;i+=5){
+      await Promise.all(teHalen.slice(i,i+5).map(async x=>{
+        const d=await elGet('/v1/convai/conversations/'+x.conversation_id).catch(()=>null);
+        if(d)detailCache.set(x.conversation_id,d);
+      }));
+    }
+
+    // 3. per gesprek de mislukte opzoekingen samenvatten (alleen wat echt is gecontroleerd)
+    const rijen=[];
+    const storingIds=new Set();
+    for(const x of kandidaten){
+      const d=detailCache.get(x.conversation_id);
+      if(!d)continue;
+      const fouten=toolFouten(d);
+      if(!fouten.length)continue;
+      const tijd=d.metadata&&d.metadata.start_time_unix_secs?new Date(d.metadata.start_time_unix_secs*1000):null;
+      // dezelfde fout meerdere keren in een gesprek = een regel met een teller
+      const groepen={};
+      fouten.forEach(f=>{
+        const u=uitleg(f.tool,f.fout);
+        const sleutel=u.soort+'|'+u.wat+'|'+u.tekst;
+        if(!groepen[sleutel])groepen[sleutel]=Object.assign({aantal:0},u);
+        groepen[sleutel].aantal++;
+      });
+      Object.values(groepen).forEach(gr=>{
+        if(gr.soort==='storing')storingIds.add(x.conversation_id);
+        rijen.push(Object.assign({tijd},gr));
+      });
+    }
+    rijen.sort((a,b)=>(b.tijd||0)-(a.tijd||0));
+
+    // tellers en kleur: alleen echte storingen tellen mee
+    const totaal=lijst.length,mis=storingIds.size;
+    const onderbroken=rijen.filter(r=>r.soort==='onderbroken').length;
+    const pct=totaal?mis/totaal*100:0;
+    const k=mis===0?'groen':(mis===1&&pct<=10?'oranje':'rood');
+    $('dot-tool').className='dot '+k;
+    const g=$('tool-groot');g.textContent=mis;g.className='groot '+k;
+    let tekst='van '+totaal+' gesprekken'+(mis?' ('+pct.toFixed(0)+'%)':'');
+    if(onderbroken)tekst+=' · '+onderbroken+'× onderbroken';
+    $('tool-tekst').textContent=tekst;
+    $('tool-fout').textContent='';
+
+    const nu=new Date();
+    const wanneer=t=>{
+      if(!t)return '-';
+      const uur=t.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+      return t.toDateString()===nu.toDateString()?'Vandaag '+uur:t.toLocaleDateString('nl-NL',{day:'numeric',month:'short'})+' '+uur;
+    };
+    $('tool-rijen').innerHTML=rijen.length?rijen.map(r=>
+      '<tr class="'+(r.soort==='storing'?'fout-rij':'')+'"><td>'+wanneer(r.tijd)+'</td><td><span class="badge '+r.soort+'">'+(r.soort==='storing'?'Storing':'Onderbroken')+(r.aantal>1?' '+r.aantal+'×':'')+'</span>'+esc(r.tekst)+'<span class="wat">'+esc(r.wat)+'</span></td></tr>'
+    ).join(''):'<tr><td colspan="2" class="leeg">✓ Alles goed gegaan</td></tr>';
+
+    // Voice assistent: rood als de laatste 3 gesprekken allemaal een toolfout hadden
+    const laatste=lijst.slice(0,3).map(x=>x.conversation_id);
+    const kapotIds=storingIds;
+    const allemaalKapot=laatste.length>=3&&laatste.every(id=>kapotIds.has(id));
+    const dot=$('dot-voice');
+    if(allemaalKapot){
+      dot.className='dot rood';
+      $('voice-status').textContent='Let op!';$('voice-detail').dataset.x='Laatste 3 gesprekken mislukt';
+    }else if(totaal===0){
+      dot.className='dot';
+      $('voice-status').textContent='Stil';
+    }else{
+      dot.className='dot '+(mis>0?'oranje':'groen');
+      $('voice-status').textContent=mis>0?'Met fouten':'Werkt';
+    }
+    $('voice-status').className='groot woord '+(dot.className.split(' ')[1]||'');
+    $('voice-detail').textContent=($('voice-detail').dataset.x?$('voice-detail').dataset.x+' · ':'')+totaal+' gesprekken (24u)';delete $('voice-detail').dataset.x;
+    $('voice-fout').textContent='';
+  }catch(e){
+    $('dot-voice').className='dot rood';
+    $('voice-status').textContent='Geen verbinding';$('voice-status').className='groot woord rood';$('voice-detail').textContent='ElevenLabs onbereikbaar of sleutel onjuist';
+    $('voice-fout').textContent=String(e.message||e)+' (kan ook een CORS-blokkade zijn)';
+    $('dot-tool').className='dot rood';
+    $('tool-fout').textContent='Kon gesprekken niet ophalen';
+  }
+}
+
+// Vertaalt een technische foutmelding naar gewone taal en bepaalt of het een storing is.
+function uitleg(tool,fout){
+  const namen={leverdata:'Leverstatus van een order opzoeken'};
+  const wat=namen[tool]||('Opzoeken: '+tool);
+  const f=String(fout||'');
+  if(/abandoned due to user input|interrupt/i.test(f))
+    return {soort:'onderbroken',wat,tekst:'De beller praatte door terwijl de gegevens werden opgezocht, dus het antwoord is niet gebruikt.'};
+  if(/timeout|timed out/i.test(f))
+    return {soort:'storing',wat,tekst:'Make reageerde te traag, de beller kreeg geen antwoord.'};
+  const m=f.match(/(?:code:?|HTTP)\s*(\d{3})/i);
+  if(m){
+    const c=parseInt(m[1],10);
+    if(c>=500)return {soort:'storing',wat,tekst:'Make gaf een serverfout ('+c+'): de gegevens konden niet worden opgehaald. Controleer het scenario in Make.'};
+    if(c>=400)return {soort:'storing',wat,tekst:'Make weigerde het verzoek ('+c+'). Controleer de webhook en de instellingen.'};
+  }
+  return {soort:'storing',wat,tekst:f.slice(0,150)||'Onbekende fout'};
+}
+
+function toolFouten(d){
+  const uit=[];
+  (d.transcript||[]).forEach(t=>{
+    (t.tool_results||[]).forEach(r=>{
+      if(r&&r.is_error){
+        let fout=r.result_value;
+        if(typeof fout!=='string')fout=JSON.stringify(fout);
+        uit.push({tool:r.tool_name||'onbekend',fout:(fout||'').slice(0,200)});
+      }
+    });
+  });
+  return uit;
+}
+function heeftToolFout(d){return toolFouten(d).length>0;}
+
+async function checkEleven(){
+  const key=$('el-key').value.trim();
+  if(!key){$('el-fout').textContent='Geen API-sleutel';return;}
+  try{
+    const d=await elGet('/v1/user/subscription');
+    const gebruikt=d.character_count,limiet=d.character_limit;
+    const einde=d.next_character_count_reset_unix?d.next_character_count_reset_unix*1000:null;
+    let verstreken=0.5;
+    if(einde){const start=einde-30*864e5;verstreken=Math.min(1,Math.max(0,(Date.now()-start)/(einde-start)));}
+    zet('el',gebruikt/limiet,verstreken,
+      gebruikt.toLocaleString('nl-NL')+' / '+limiet.toLocaleString('nl-NL')+(einde?' · reset '+new Date(einde).toLocaleDateString('nl-NL',{day:'numeric',month:'short'}):''),
+      progTekst(gebruikt/limiet,verstreken));
+    $('el-fout').textContent='';
+  }catch(e){$('el-fout').textContent='Fout: '+e.message;$('dot-el').className='dot rood';}
+}
+
+// Het saldo komt via een Make-scenario (kost een paar Make-credits per aanroep).
+// Daarom wordt het antwoord 6 uur bewaard; 'Ververs Twilio' haalt het direct opnieuw op.
+async function checkTwilio(force){
+  const hook=$('tw-hook').value.trim();
+  if(!hook){$('tw-fout').textContent='Webhook ontbreekt (Instellingen)';return;}
+  try{
+    let d=null,bron='uit cache';
+    try{
+      const c=JSON.parse(localStorage.getItem('vd_tw-cache')||'null');
+      if(c&&!force&&Date.now()-c.t<6*3600*1000){d=c.d;bron='om '+new Date(c.t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});}
+    }catch(e){}
+    if(!d){
+      const r=await fetch(hook);
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      const txt=await r.text();
+      try{d=JSON.parse(txt);}catch(e){throw new Error('Make stuurde geen saldo terug (antwoord: "'+txt.slice(0,40)+'"). Staat het scenario aan en zijn de Twilio-gegevens ingevuld?');}
+      if(isNaN(parseFloat(d.balance)))throw new Error('Make gaf geen Twilio-saldo terug. Controleer de HTTP-stap in het scenario (Twilio-gegevens en Account SID in de URL).');
+      bron='net opgehaald';
+      try{localStorage.setItem('vd_tw-cache',JSON.stringify({t:Date.now(),d}));}catch(e){}
+    }
+    const saldo=parseFloat(d.balance);
+    if(isNaN(saldo))throw new Error('Geen saldo in het antwoord van Make');
+    const start=parseFloat($('tw-start').value)||saldo;
+    const dagen=parseFloat($('tw-dagen').value)||30;
+    const gebruikt=Math.max(0,start-saldo);
+    // Twilio kent geen periode: we gebruiken vaste saldodrempels voor de kleur
+    const k=saldo<5?'rood':saldo<15?'oranje':'groen';
+    $('fill-tw').style.width=Math.min(100,(saldo/start)*100)+'%';
+    $('fill-tw').className='fill '+k;$('dot-tw').className='dot '+k;
+    const munt=d.currency==='USD'?'$':(d.currency?d.currency+' ':'');
+    const tg=$('tw-groot');tg.textContent=munt+saldo.toFixed(2);tg.className='groot '+k;
+    $('tw-tekst').textContent='van '+munt+start.toFixed(2)+' · '+gebruikt.toFixed(2)+' gebruikt';
+    $('tw-prognose').textContent=dagen+' dagen · '+bron;
+    if(start>0)melden('tw',gebruikt/start);
+    $('tw-fout').textContent='';
+  }catch(e){$('tw-fout').textContent='Fout: '+e.message;$('dot-tw').className='dot rood';}
+}
+
+async function checkMake(force){
+  // Via een Make-scenario (kost een paar Make-credits per aanroep), daarom 6 uur bewaard.
+  $('make-fout').textContent='';
+  const hook=$('mk-hook').value.trim();
+  let gebruikt=parseFloat($('make-used').value),totaal=parseFloat($('make-total').value);
+  let einde=$('make-end').value?new Date($('make-end').value).getTime():null;
+  let begin=$('make-begin').value?new Date($('make-begin').value).getTime():null;
+  let bron='handmatig';
+  if(hook&&$('make-begin').value){
+    try{
+      let d=null;
+      try{const c=JSON.parse(localStorage.getItem('vd_mk-cache')||'null');
+        if(c&&!force&&Date.now()-c.t<6*3600*1000){d=c.d;bron='om '+new Date(c.t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});}}catch(e){}
+      if(!d){
+        const r=await fetch(hook);
+        if(!r.ok)throw new Error('HTTP '+r.status);
+        const txt=await r.text();
+        try{d=JSON.parse(txt);}catch(e){throw new Error('Make stuurde geen cijfers terug (antwoord: "'+txt.slice(0,40)+'"). Staat het scenario aan en is het Make-token ingevuld?');}
+        if(typeof d.cc!=='string'||typeof d.days!=='string'||!d.cc)throw new Error('Make gaf geen verbruik terug. Controleer de HTTP-stap in het scenario (token en organisatie-ID).');
+        bron='net opgehaald';
+        try{localStorage.setItem('vd_mk-cache',JSON.stringify({t:Date.now(),d}));}catch(e){}
+      }
+      const dagen=d.days.split(','),cc=d.cc.split(',');
+      const start=$('make-begin').value;let som=0;
+      dagen.forEach((dag,i)=>{if(dag.slice(0,10)>=start)som+=parseFloat(cc[i])||0;});
+      gebruikt=Math.round(som/100*100)/100;
+    }catch(e){$('make-fout').textContent='Fout: '+e.message+' (handmatige cijfers gebruikt)';}
+  }
+  if(isNaN(gebruikt)||isNaN(totaal)||!totaal){$('dot-make').className='dot';$('make-tekst').textContent='Vul Make in bij Instellingen';return;}
+  let verstreken=0.5;
+  if(begin&&einde){verstreken=Math.min(1,Math.max(0,(Date.now()-begin)/(einde-begin)));}
+  zet('make',gebruikt/totaal,verstreken,
+    gebruikt.toLocaleString('nl-NL')+' / '+totaal.toLocaleString('nl-NL')+(einde?' · tot '+new Date(einde).toLocaleDateString('nl-NL',{day:'numeric',month:'short'}):''),
+    (begin&&einde?progTekst(gebruikt/totaal,verstreken):'Geen periode ingesteld')+(bron!=='handmatig'?' · '+bron:''));
+  if(einde&&einde<Date.now())$('make-fout').textContent=($('make-fout').textContent+' Einddatum periode is verstreken.').trim();
+}
+
+// Orderlijst: is de Google Sheet AI_verkooporders vernieuwd in het etmaal voor de controle van 9:00?
+// Het Apps Script in het ai@-account geeft status en wijzigingstijd terug. Kost geen Make-credits.
+async function checkSheet(){
+  const url=$('sh-url').value.trim();
+  const g=$('sh-groot'),dot=$('dot-sh');
+  if(!url){dot.className='dot';g.textContent='Instellen';g.className='groot woord';$('sh-tekst').textContent='Vul het Apps Script-adres in bij Instellingen';$('sh-fout').textContent='';return;}
+  try{
+    const r=await fetch(url+(url.includes('?')?'&':'?')+'t='+Date.now());
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const txt=await r.text();
+    let d;try{d=JSON.parse(txt);}catch(e){throw new Error('Geen geldig antwoord van het script. Staat de implementatie op "Iedereen"?');}
+    if(d.fout)throw new Error(d.fout);
+    const k=d.status==='groen'?'groen':'rood';
+    dot.className='dot '+k;
+    g.textContent=k==='groen'?'Vernieuwd':'Niet vernieuwd';g.className='groot woord '+k;
+    const t=new Date(d.gewijzigd),nu=new Date();
+    const uur=t.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+    const gister=new Date(nu);gister.setDate(nu.getDate()-1);
+    const dag=t.toDateString()===nu.toDateString()?'vandaag':t.toDateString()===gister.toDateString()?'gisteren':t.toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',month:'short'});
+    $('sh-tekst').textContent='Laatst bijgewerkt '+dag+' '+uur;
+    $('sh-fout').textContent='';
+    // melding (zolang de app open is) een keer per controlemoment
+    if(k==='rood'&&'Notification' in window&&Notification.permission==='granted'){
+      let gemeld=null;try{gemeld=localStorage.getItem('vd_meld-sh-cache');}catch(e){}
+      if(gemeld!==d.controle){toon('Orderlijst niet vernieuwd','AI_verkooporders is sinds '+dag+' '+uur+' niet bijgewerkt.');try{localStorage.setItem('vd_meld-sh-cache',d.controle);}catch(e){}}
+    }
+  }catch(e){dot.className='dot rood';g.textContent='Onbekend';g.className='groot woord rood';$('sh-tekst').textContent='';$('sh-fout').textContent='Fout: '+(e.message||e);}
+}
+
+async function controleer(){
+  await Promise.all([checkGesprekken(),checkEleven(),checkTwilio(),checkMake(),checkSheet()]);
+  $('laatste').textContent=new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
+laden();
+// eerste keer zonder instellingen: meteen het instellingen-venster openen
+if(!$('el-key').value&&!$('tw-hook').value&&!$('mk-hook').value&&!$('sh-url').value){try{$('instellingen').showModal();}catch(e){}}
+controleer();setInterval(controleer,300000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)controleer();});
+</script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Instellingen overzetten</title>
+<style>
+  body{font-family:system-ui,sans-serif;background:#f3f4f6;color:#111827;margin:0;padding:24px 16px;display:flex;justify-content:center}
+  main{background:#fff;border-radius:12px;padding:24px;max-width:420px;width:100%;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+  h1{font-size:1.3rem;margin:0 0 8px}
+  p{line-height:1.45}
+  #qr{display:flex;justify-content:center;margin:20px 0}
+  #qr img{max-width:100%;height:auto;image-rendering:pixelated}
+  .waarsch{background:#fef3c7;border-radius:8px;padding:10px 12px;font-size:.9rem}
+  a.knop{display:inline-block;background:#2563eb;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none}
+</style>
+</head>
+<body>
+<main>
+  <h1>Instellingen overzetten</h1>
+  <div id="inhoud">Bezig…</div>
+</main>
+<script src="qrcode.js"></script>
+<script>
+(function () {
+  var PREFIX = 'vd_';
+  var el = document.getElementById('inhoud');
+  var hash = location.hash.slice(1);
+
+  function b64encode(s){ return btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+  function b64decode(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; return decodeURIComponent(escape(atob(s))); }
+
+  if (hash.indexOf('i=') === 0) {
+    // Ontvangen: instellingen opslaan op dit apparaat
+    try {
+      var data = JSON.parse(b64decode(hash.slice(2)));
+      var n = 0;
+      Object.keys(data).forEach(function (k) {
+        if (k.indexOf(PREFIX) === 0) { localStorage.setItem(k, data[k]); n++; }
+      });
+      history.replaceState(null, '', location.pathname); // code uit de adresbalk halen
+      el.innerHTML = '<p>' + n + ' instellingen opgeslagen op dit apparaat.</p><p><a class="knop" href="index.html">Naar het dashboard</a></p>';
+    } catch (e) {
+      el.innerHTML = '<p>Deze code klopt niet. Scan de QR-code opnieuw.</p>';
+    }
+    return;
+  }
+
+  // Versturen: QR-code tonen met de instellingen van dit apparaat
+  var data = {};
+  for (var i = 0; i < localStorage.length; i++) {
+    var k = localStorage.key(i);
+    if (k.indexOf(PREFIX) === 0 && k.indexOf('-cache') === -1) data[k] = localStorage.getItem(k);
+  }
+  if (!Object.keys(data).length) {
+    el.innerHTML = '<p>Op dit apparaat staan geen instellingen. Open deze pagina op het apparaat waar het dashboard wel ingesteld is (je computer).</p>';
+    return;
+  }
+  var link = location.origin + location.pathname + '#i=' + b64encode(JSON.stringify(data));
+  el.innerHTML = '<p>Scan deze code met de camera van je telefoon en open de link in Chrome. De instellingen worden dan op je telefoon opgeslagen.</p><div id="qr"></div>' +
+    '<p class="waarsch">In deze code zitten je sleutels. Laat hem niemand anders scannen en maak er geen foto of screenshot van.</p>';
+  var qr = qrcode(0, 'L'); qr.addData(link); qr.make();
+  document.getElementById('qr').innerHTML = qr.createImgTag(Math.max(4, Math.floor(480 / qr.getModuleCount())), 8);
+})();
+</script>
+</body>
+</html>
