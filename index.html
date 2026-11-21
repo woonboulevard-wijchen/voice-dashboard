@@ -642,6 +642,8 @@ async function checkMake(force){
       const start=$('make-begin').value;let som=0;
       dagen.forEach((dag,i)=>{if(dag.slice(0,10)>=start)som+=parseFloat(cc[i])||0;});
       gebruikt=Math.round(som/100*100)/100;
+      // geeft het Make-scenario ook het creditlimiet mee, dan gaat dat voor op de instelling
+      const lim=parseFloat(d.limit);if(lim>0)totaal=lim;
     }catch(e){$('make-fout').textContent='Fout: '+e.message+' (handmatige cijfers gebruikt)';}
   }
   if(isNaN(gebruikt)||isNaN(totaal)||!totaal){$('dot-make').className='dot';$('make-tekst').textContent='Vul Make in bij Instellingen';return;}
@@ -792,6 +794,10 @@ if('serviceWorker' in navigator){
   }).catch(()=>{});
 }
 laden();
+// Make-tegoed is verhoogd van 10.000 naar 14.000 credits: oude instelling eenmalig bijwerken (ook bij het script).
+try{if(!localStorage.getItem('vd_mig-make14000')){localStorage.setItem('vd_mig-make14000','1');
+  if($('make-total').value.trim()==='10000'){$('make-total').value='14000';localStorage.setItem('vd_make-total','14000');
+    if($('sh-url').value.trim()&&$('el-key').value.trim())serverMeldingen().catch(()=>{});}}}catch(e){}
 // eerste keer zonder instellingen: meteen het instellingen-venster openen
 if(!$('el-key').value&&!$('tw-hook').value&&!$('mk-hook').value&&!$('sh-url').value){try{$('instellingen').showModal();}catch(e){}}
 controleer();setInterval(controleer,300000);
