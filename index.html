@@ -40,39 +40,93 @@
         cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .4s}
   .rond:active{transform:rotate(180deg)}
   main{max-width:960px;margin:-34px auto 0;padding:0 12px}
-  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
   @media (min-width:760px){.grid{grid-template-columns:repeat(3,1fr)}}
-  .card{background:var(--kaart);border-radius:16px;padding:12px 14px;box-shadow:0 2px 10px rgba(15,23,42,.07);
-        border-top:5px solid var(--grijs-l);position:relative;min-width:0}
+  .card{background:var(--kaart);border-radius:14px;padding:9px 11px 8px;box-shadow:0 2px 8px rgba(15,23,42,.06);
+        border-top:4px solid var(--grijs-l);position:relative;min-width:0}
   .card:has(.dot.groen){border-top-color:var(--groen)}
   .card:has(.dot.oranje){border-top-color:var(--oranje);background:linear-gradient(#fff 55%,var(--oranje-l))}
   .card:has(.dot.rood){border-top-color:var(--rood);background:linear-gradient(#fff 55%,var(--rood-l))}
-  .kop{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--zacht);text-transform:uppercase;letter-spacing:.4px}
-  .ico{font-size:15px}
-  .dot{width:10px;height:10px;border-radius:50%;background:#cbd5e1;margin-left:auto;flex:none}
+  .kop{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--zacht);text-transform:uppercase;letter-spacing:.4px}
+  .ico{font-size:13px}
+  .dot{width:9px;height:9px;border-radius:50%;background:#cbd5e1;margin-left:auto;flex:none}
   .dot.groen{background:var(--groen);box-shadow:0 0 0 3px var(--groen-l)}
   .dot.oranje{background:var(--oranje);box-shadow:0 0 0 3px var(--oranje-l)}
   .dot.rood{background:var(--rood);box-shadow:0 0 0 3px var(--rood-l)}
-  .groot{font-size:28px;font-weight:800;margin:6px 0 2px;line-height:1.1;font-variant-numeric:tabular-nums}
+  .groot{font-size:22px;font-weight:800;margin:3px 0 1px;line-height:1.1;font-variant-numeric:tabular-nums}
   .groot.groen{color:var(--groen)}.groot.oranje{color:var(--oranje)}.groot.rood{color:var(--rood)}
-  .groot.woord{font-size:19px}
-  .bar{height:8px;background:var(--grijs-l);border-radius:4px;overflow:hidden;margin:8px 0 6px}
+  .groot.woord{font-size:16px}
+  .bar{height:6px;background:var(--grijs-l);border-radius:3px;overflow:hidden;margin:4px 0 4px}
   .fill{height:100%;width:0;background:var(--groen);border-radius:4px;transition:width .6s,background .6s}
   .fill.oranje{background:var(--oranje)}.fill.rood{background:var(--rood)}
-  .small{font-size:12px;color:var(--zacht);line-height:1.35}
-  .fout{color:var(--rood);font-size:12px;margin-top:4px;word-break:break-word}
+  .small{font-size:11px;color:var(--zacht);line-height:1.3}
+  .fout{color:var(--rood);font-size:11px;margin-top:3px;word-break:break-word}
   .fout:empty{display:none}
   .breed{grid-column:1/-1}
   .legenda{display:flex;gap:6px;margin-left:auto;text-transform:none;letter-spacing:0}
-  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
-  td{padding:7px 6px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
+  td{padding:5px 6px;border-bottom:1px solid #f1f5f9;vertical-align:top}
   td:first-child{white-space:nowrap;color:var(--zacht);font-size:12px}
   tr.fout-rij td:first-child{box-shadow:inset 3px 0 0 var(--rood)}
   .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:var(--rood-l);color:#991b1b;margin-right:6px}
   .badge.onderbroken{background:var(--grijs-l);color:#334155}
   .wat{display:block;font-size:11px;color:var(--zacht);margin-top:2px}
   .tabelwrap{overflow-x:auto}
-  .leeg{color:var(--groen);font-weight:600;text-align:center;padding:14px}
+  .leeg{color:var(--groen);font-weight:600;text-align:center;padding:8px}
+
+  /* ===== gezondheidsgezicht ===== */
+  .held{display:flex;align-items:center;gap:14px;background:var(--kaart);border-radius:16px;padding:10px 16px 10px 10px;margin-bottom:8px;
+        box-shadow:0 2px 10px rgba(15,23,42,.08);border-left:6px solid var(--grijs-l);transition:background .6s,border-color .6s}
+  .held[data-stand="0"]{border-left-color:var(--groen);background:linear-gradient(90deg,var(--groen-l),#fff 70%)}
+  .held[data-stand="1"]{border-left-color:var(--oranje);background:linear-gradient(90deg,var(--oranje-l),#fff 70%)}
+  .held[data-stand="2"]{border-left-color:var(--rood);background:linear-gradient(90deg,var(--rood-l),#fff 70%)}
+  .held[data-stand="3"]{border-left-color:#7f1d1d;background:linear-gradient(90deg,#fecaca,#fff1f2 75%);animation:alarm 1.6s ease-in-out infinite}
+  @keyframes alarm{50%{box-shadow:0 0 0 4px rgba(220,38,38,.25),0 2px 10px rgba(15,23,42,.08)}}
+  .gezicht{width:84px;height:84px;flex:none;overflow:visible}
+  @media (min-width:760px){.gezicht{width:100px;height:100px}.held{padding:12px 22px 12px 14px;gap:20px}}
+  .held-tekst{min-width:0;flex:1}
+  .held-titel{font-size:18px;font-weight:800;line-height:1.15}
+  @media (min-width:760px){.held-titel{font-size:22px}}
+  .held[data-stand="0"] .held-titel{color:#15803d}.held[data-stand="1"] .held-titel{color:#c2410c}
+  .held[data-stand="2"] .held-titel{color:#b91c1c}.held[data-stand="3"] .held-titel{color:#7f1d1d}
+  .held-sub{font-size:12px;color:var(--zacht);margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+  .chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;background:#fff;color:#9a3412;border:1px solid #fdba74}
+  .chip.rood{color:#991b1b;border-color:#fca5a5}.chip.dood{border-color:#7f1d1d}.chip.dood{background:#7f1d1d;color:#fff}
+  .gezicht .st{display:none}
+  .held[data-stand="wacht"] .t0,.held[data-stand="0"] .t0,.held[data-stand="1"] .t1,.held[data-stand="2"] .t2,.held[data-stand="3"] .t3{display:inline}
+  .gezicht *{transform-box:fill-box;transform-origin:center}
+  .gezicht .lijn{fill:none;stroke:#1e293b;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+  .gezicht .huid{stroke:rgba(15,23,42,.18);stroke-width:2.5;transition:fill .8s}
+  .held[data-stand="wacht"] .huid{fill:#e2e8f0}
+  .held[data-stand="0"] .huid{fill:#fcd34d}
+  .held[data-stand="1"] .huid{fill:#ecdf86}
+  .held[data-stand="2"] .huid{fill:#c9d98c}
+  .held[data-stand="3"] .huid{fill:#b4c2a6}
+  .gezicht .hoofd{transform-origin:50% 90%}
+  .held[data-stand="0"] .hoofd{animation:huppel 2.2s ease-in-out infinite}
+  .held[data-stand="0"] .oog{animation:knipper 4.5s infinite}
+  .held[data-stand="1"] .hoofd{animation:wiebel 4s ease-in-out infinite}
+  .held[data-stand="1"] .oog{animation:knipper 3s infinite}
+  .held[data-stand="2"] .hoofd{animation:zwaai 3s ease-in-out infinite}
+  .held[data-stand="3"] .hoofd{animation:ril .18s linear infinite}
+  .held[data-stand="3"] .gezicht{animation:zak 3.5s ease-in-out infinite}
+  .zweet{animation:druppel 2.4s ease-in infinite}
+  .thermo{animation:thermo 2s ease-in-out infinite;transform-origin:0% 50%!important}
+  .kwik{animation:kwik 2s ease-in-out infinite}
+  .ijs{animation:ijs 3s ease-in-out infinite}
+  .ster{animation:draai 2.5s linear infinite}
+  @keyframes huppel{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-6px) rotate(-3deg)}60%{transform:translateY(0) rotate(3deg)}}
+  @keyframes knipper{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+  @keyframes wiebel{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+  @keyframes zwaai{0%,100%{transform:rotate(-8deg) translateY(2px)}50%{transform:rotate(6deg) translateY(4px)}}
+  @keyframes ril{0%{transform:translate(0,3px)}25%{transform:translate(-1.5px,3px)}75%{transform:translate(1.5px,3px)}}
+  @keyframes zak{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(-10deg) translateY(3px)}}
+  @keyframes druppel{0%{transform:translateY(-4px);opacity:0}20%{opacity:1}100%{transform:translateY(18px);opacity:0}}
+  @keyframes thermo{0%,100%{transform:rotate(0)}50%{transform:rotate(9deg)}}
+  @keyframes kwik{0%,100%{fill:#ef4444}50%{fill:#b91c1c}}
+  @keyframes ijs{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+  @keyframes draai{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.gezicht *,.gezicht,.held{animation:none!important}}
 
   /* instellingen */
   .onder{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));
@@ -106,7 +160,7 @@
   .noot{font-size:11px;color:var(--zacht);margin-top:12px;text-align:center}
   /* sluitingsdagen */
   .sd-lijst{list-style:none;margin:8px 0 0;padding:0}
-  .sd-lijst li{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:14px}
+  .sd-lijst li{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
   .sd-lijst li .d{flex:1;min-width:0}
   .sd-lijst li .n{display:block;font-size:12px;color:var(--zacht)}
   .sd-lijst li.vandaag{font-weight:700}
@@ -129,6 +183,35 @@
 </header>
 
 <main>
+<div class="held" id="held" data-stand="wacht" role="status">
+  <svg class="gezicht" viewBox="0 0 120 120" aria-hidden="true">
+    <g class="hoofd">
+      <circle class="huid" cx="60" cy="64" r="48"/>
+      <!-- blij -->
+      <g class="st t0"><ellipse cx="31" cy="77" rx="8" ry="5" fill="#fb7185" opacity=".5"/><ellipse cx="89" cy="77" rx="8" ry="5" fill="#fb7185" opacity=".5"/></g>
+      <g class="st t0 t1"><ellipse class="oog" cx="43" cy="56" rx="5.5" ry="7.5" fill="#1e293b"/><ellipse class="oog" cx="77" cy="56" rx="5.5" ry="7.5" fill="#1e293b"/></g>
+      <g class="st t0"><circle cx="45" cy="53" r="1.8" fill="#fff"/><circle cx="79" cy="53" r="1.8" fill="#fff"/></g>
+      <g class="st t0"><path d="M36 75 Q60 104 84 75 Z" fill="#7f1d1d" stroke="#1e293b" stroke-width="3" stroke-linejoin="round"/><path d="M50 88 Q60 82 70 88 Q60 97 50 88Z" fill="#fb7185"/></g>
+      <!-- klein beetje ziek -->
+      <g class="st t1 lijn"><path d="M34 45 L50 40"/><path d="M86 45 L70 40"/><path d="M44 86 Q52 80 60 86 T76 86"/></g>
+      <path class="st t1 zweet" d="M95 38 q6 9 0 13 q-6 -4 0 -13z" fill="#38bdf8" stroke="#0284c7" stroke-width="1.5"/>
+      <!-- behoorlijk ziek -->
+      <g class="st t2 lijn"><path d="M34 57 Q43 63 52 57"/><path d="M68 57 Q77 63 86 57"/><path d="M33 49 L51 52"/><path d="M87 49 L69 52"/><path d="M44 92 Q60 80 76 92"/></g>
+      <g class="st t2"><ellipse cx="38" cy="66" rx="6" ry="2.5" fill="#94a3b8" opacity=".5"/><ellipse cx="82" cy="66" rx="6" ry="2.5" fill="#94a3b8" opacity=".5"/></g>
+      <g class="st t2 thermo"><rect x="66" y="86" width="40" height="7" rx="3.5" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/><circle class="kwik" cx="106" cy="89.5" r="6" fill="#ef4444" stroke="#64748b" stroke-width="1.5"/><rect x="86" y="88" width="18" height="3" rx="1.5" fill="#ef4444"/></g>
+      <path class="st t2 zweet" d="M22 46 q6 9 0 13 q-6 -4 0 -13z" fill="#38bdf8" stroke="#0284c7" stroke-width="1.5"/>
+      <!-- doodziek -->
+      <g class="st t3 lijn"><path d="M36 50 L50 64 M50 50 L36 64"/><path d="M70 50 L84 64 M84 50 L70 64"/><path d="M40 90 Q47 84 54 90 T68 90 T82 90"/></g>
+      <path class="st t3" d="M57 90 q0 12 6 12 q6 0 6 -12z" fill="#f472b6" stroke="#1e293b" stroke-width="2.5"/>
+      <g class="st t3 ijs"><path d="M26 30 Q40 6 64 10 Q88 6 96 30 Q80 22 62 24 Q42 22 26 30Z" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5" stroke-linejoin="round"/><rect x="56" y="3" width="13" height="9" rx="3" fill="#0369a1"/><path d="M40 20 h8 M72 18 h8" stroke="#e0f2fe" stroke-width="3" stroke-linecap="round"/></g>
+    </g>
+    <g class="st t3"><g class="ster"><path d="M14 14 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z" fill="#facc15" stroke="#a16207" stroke-width="1.2"/></g><g class="ster" style="animation-delay:-1.2s"><path d="M104 8 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" fill="#facc15" stroke="#a16207" stroke-width="1.2"/></g></g>
+  </svg>
+  <div class="held-tekst">
+    <div class="held-titel" id="held-titel">Even kijken&hellip;</div>
+    <div class="held-sub" id="held-sub">De voice monitor wordt gecontroleerd.</div>
+  </div>
+</div>
 <div class="grid">
   <div class="card">
     <div class="kop"><span class="ico">🎙️</span>Assistent<span id="dot-voice" class="dot"></span></div>
@@ -325,6 +408,7 @@ function kleur(gebruiktFrac,verstrekenFrac){
 }
 function zet(prefix,gebruiktFrac,verstrekenFrac,tekst,prog){
   const k=kleur(gebruiktFrac,verstrekenFrac);
+  pcts['dot-'+prefix]=gebruiktFrac*100;
   const f=$('fill-'+prefix);f.style.width=Math.min(100,gebruiktFrac*100)+'%';f.className='fill '+k;
   $('dot-'+prefix).className='dot '+k;
   $(prefix+'-tekst').textContent=tekst;
@@ -399,6 +483,7 @@ async function checkGesprekken(){
     const onderbroken=rijen.filter(r=>r.soort==='onderbroken').length;
     const pct=totaal?mis/totaal*100:0;
     const k=mis===0?'groen':(mis===1&&pct<=10?'oranje':'rood');
+    pcts['dot-tool']=pct;
     $('dot-tool').className='dot '+k;
     const g=$('tool-groot');g.textContent=mis;g.className='groot '+k;
     let tekst='van '+totaal+' gesprekken'+(mis?' ('+pct.toFixed(0)+'%)':'');
@@ -489,7 +574,7 @@ async function checkEleven(){
       gebruikt.toLocaleString('nl-NL')+' / '+limiet.toLocaleString('nl-NL')+(einde?' · reset '+new Date(einde).toLocaleDateString('nl-NL',{day:'numeric',month:'short'}):''),
       progTekst(gebruikt/limiet,verstreken));
     $('el-fout').textContent='';
-  }catch(e){$('el-fout').textContent='Fout: '+e.message;$('dot-el').className='dot rood';}
+  }catch(e){$('el-fout').textContent='Fout: '+e.message;$('dot-el').className='dot rood';delete pcts['dot-el'];}
 }
 
 // Het saldo komt via een Make-scenario (kost een paar Make-credits per aanroep).
@@ -525,9 +610,10 @@ async function checkTwilio(force){
     const tg=$('tw-groot');tg.textContent=munt+saldo.toFixed(2);tg.className='groot '+k;
     $('tw-tekst').textContent='van '+munt+start.toFixed(2)+' · '+gebruikt.toFixed(2)+' gebruikt';
     $('tw-prognose').textContent=dagen+' dagen · '+bron;
+    pcts['dot-tw']=start>0?gebruikt/start*100:0;
     if(start>0)melden('tw',gebruikt/start);
     $('tw-fout').textContent='';
-  }catch(e){$('tw-fout').textContent='Fout: '+e.message;$('dot-tw').className='dot rood';}
+  }catch(e){$('tw-fout').textContent='Fout: '+e.message;$('dot-tw').className='dot rood';delete pcts['dot-tw'];}
 }
 
 async function checkMake(force){
@@ -556,6 +642,8 @@ async function checkMake(force){
       const start=$('make-begin').value;let som=0;
       dagen.forEach((dag,i)=>{if(dag.slice(0,10)>=start)som+=parseFloat(cc[i])||0;});
       gebruikt=Math.round(som/100*100)/100;
+      // geeft het Make-scenario ook het creditlimiet mee, dan gaat dat voor op de instelling
+      const lim=parseFloat(d.limit);if(lim>0)totaal=lim;
     }catch(e){$('make-fout').textContent='Fout: '+e.message+' (handmatige cijfers gebruikt)';}
   }
   if(isNaN(gebruikt)||isNaN(totaal)||!totaal){$('dot-make').className='dot';$('make-tekst').textContent='Vul Make in bij Instellingen';return;}
@@ -661,8 +749,39 @@ function sdToevoegen(datum,naam){
 }
 function sdWeg(datum){sdOpslaan(sdDagen.filter(x=>x.datum!==datum));}
 
+// ===== Gezondheid: het gezicht bovenaan =====
+// 0 = alles groen (blij), 1 = iets oranje (beetje ziek), 2 = iets rood (behoorlijk ziek),
+// 3 = iets rood met een verbruik boven 80% (doodziek).
+const pcts={};
+const TEGELS=[['dot-voice','Assistent','voice-status'],['dot-tool','Storingen','tool-groot'],['dot-el','ElevenLabs','el-groot'],
+  ['dot-make','Make','make-groot'],['dot-tw','Twilio','tw-groot'],['dot-sh','Orderlijst','sh-groot'],['dot-sd','Sluitingsdagen',null]];
+const STANDEN=[
+  ['Kerngezond','Alles is groen. De voice monitor voelt zich prima.'],
+  ['Een beetje ziek',''],['Behoorlijk ziek',''],['Doodziek','']];
+function gezondheid(){
+  const test=new URLSearchParams(location.search).get('gezicht');
+  let stand=0;const oorzaken=[];
+  for(const [id,naam,waarde] of TEGELS){
+    const c=$(id).className;
+    let k=c.includes('rood')?'rood':c.includes('oranje')?'oranje':null;
+    if(id==='dot-sd'&&k==='oranje')k=null; // vandaag gesloten is geen ziekte
+    if(!k)continue;
+    const s=k==='oranje'?1:(pcts[id]>80?3:2);
+    stand=Math.max(stand,s);
+    const w=waarde?$(waarde).textContent.trim():'';
+    oorzaken.push({s,tekst:naam+(w&&w!=='–'?' '+w:'')});
+  }
+  if(test!==null&&/^[0-3]$/.test(test))stand=+test;
+  oorzaken.sort((a,b)=>b.s-a.s);
+  $('held').dataset.stand=stand;
+  $('held-titel').textContent=STANDEN[stand][0];
+  $('held-sub').innerHTML=oorzaken.length
+    ?oorzaken.map(o=>'<span class="chip '+(o.s===3?'dood':o.s===2?'rood':'')+'">'+esc(o.tekst)+'</span>').join('')
+    :esc(STANDEN[stand][1]||'Testweergave');
+}
 async function controleer(){
-  await Promise.all([checkGesprekken(),checkEleven(),checkTwilio(),checkMake(),checkSheet(),sdLaden()]);
+  await Promise.all([checkGesprekken(),checkEleven(),checkTwilio(),checkMake(),checkSheet(),sdLaden()].map(p=>p.catch(()=>{})));
+  gezondheid();
   $('laatste').textContent=new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
 }
 // Nieuwe versie van de app: meteen ophalen en een keer herladen.
@@ -675,6 +794,10 @@ if('serviceWorker' in navigator){
   }).catch(()=>{});
 }
 laden();
+// Make-tegoed is verhoogd van 10.000 naar 14.000 credits: oude instelling eenmalig bijwerken (ook bij het script).
+try{if(!localStorage.getItem('vd_mig-make14000')){localStorage.setItem('vd_mig-make14000','1');
+  if($('make-total').value.trim()==='10000'){$('make-total').value='14000';localStorage.setItem('vd_make-total','14000');
+    if($('sh-url').value.trim()&&$('el-key').value.trim())serverMeldingen().catch(()=>{});}}}catch(e){}
 // eerste keer zonder instellingen: meteen het instellingen-venster openen
 if(!$('el-key').value&&!$('tw-hook').value&&!$('mk-hook').value&&!$('sh-url').value){try{$('instellingen').showModal();}catch(e){}}
 controleer();setInterval(controleer,300000);
