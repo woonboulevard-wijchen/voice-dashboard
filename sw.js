@@ -1,4 +1,4 @@
-const CACHE = 'voice-dashboard-v21';
+const CACHE = 'voice-dashboard-v22';
 const BESTANDEN = [
   './', './index.html', './manifest.json', './icon.svg', './overzetten.html', './qrcode.js',
   './icon-192.png', './icon-512.png', './icon-maskable-192.png', './icon-maskable-512.png'

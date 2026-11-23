@@ -73,6 +73,12 @@
   .wat{display:block;font-size:11px;color:var(--zacht);margin-top:2px}
   .tabelwrap{overflow-x:auto}
   .leeg{color:var(--groen);font-weight:600;text-align:center;padding:8px}
+  .ch-rij{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:2px}
+  .ch-rij .groot{margin:0}
+  .sterren{font-size:20px;letter-spacing:1px;line-height:1;background:linear-gradient(90deg,#f59e0b var(--p,0%),#e2e8f0 var(--p,0%));
+           -webkit-background-clip:text;background-clip:text;color:transparent}
+  .ch-verdeling{display:flex;gap:6px;flex-wrap:wrap}
+  .ch-verdeling span{font-size:11px;color:var(--zacht);background:var(--grijs-l);border-radius:999px;padding:1px 7px}
 
   /* ===== gezondheidsgezicht ===== */
   .held{display:flex;align-items:center;gap:14px;background:var(--kaart);border-radius:16px;padding:10px 16px 10px 10px;margin-bottom:8px;
@@ -262,6 +268,17 @@
   </div>
 
   <div class="card breed">
+    <div class="kop"><span class="ico">💬</span>Chat-beoordeling deze week<span id="dot-ch" class="dot"></span></div>
+    <div class="ch-rij">
+      <div id="ch-groot" class="groot">–</div>
+      <div id="ch-sterren" class="sterren" aria-hidden="true">★★★★★</div>
+      <div id="ch-verdeling" class="ch-verdeling"></div>
+    </div>
+    <div id="ch-tekst" class="small"></div>
+    <div id="ch-fout" class="fout"></div>
+  </div>
+
+  <div class="card breed">
     <div class="kop"><span class="ico">🔎</span>Mislukte opzoekingen
       <span class="legenda"><span class="badge">Storing</span><span class="badge onderbroken" title="Beller praatte door, geen storing">Onderbroken</span></span>
     </div>
@@ -293,6 +310,7 @@
     <fieldset class="f-el"><legend>🗣️ ElevenLabs</legend>
       <label>API-sleutel</label><input id="el-key" type="password" autocomplete="off">
       <label>Agent-ID</label><input id="el-agent" autocomplete="off">
+      <label>Agent-ID tekstchat (voor de sterren)</label><input id="el-chat" value="agent_8201m7wcc2d5ef2s7xk8jvpvkrmn" autocomplete="off">
     </fieldset>
 
     <fieldset class="f-tw"><legend>📞 Twilio</legend>
@@ -339,7 +357,7 @@
 </dialog>
 
 <script>
-const velden=['el-key','el-agent','tw-hook','tw-start','tw-dagen','mk-hook','make-used','make-total','make-end','make-begin','m-el','m-make','m-tw','sh-url'];
+const velden=['el-key','el-agent','tw-hook','tw-start','tw-dagen','mk-hook','make-used','make-total','make-end','make-begin','m-el','m-make','m-tw','sh-url','el-chat'];
 const NAMEN={el:'ElevenLabs',make:'Make',tw:'Twilio'};
 
 // Meldingen: werkt zolang de app open is of op de achtergrond nog draait (controle elke 5 minuten).
@@ -525,6 +543,39 @@ async function checkGesprekken(){
     $('voice-fout').textContent=String(e.message||e)+' (kan ook een CORS-blokkade zijn)';
     $('dot-tool').className='dot rood';
     $('tool-fout').textContent='Kon gesprekken niet ophalen';
+  }
+}
+
+// Sterren die klanten aan het eind van de tekstchat geven, sinds maandag 00:00.
+// Alleen leesverzoeken bij ElevenLabs met de sleutel die al op dit apparaat staat.
+async function checkChat(){
+  const key=$('el-key').value.trim(),agent=$('el-chat').value.trim();
+  if(!key||!agent){$('ch-tekst').textContent='Vul ElevenLabs in bij Instellingen';$('dot-ch').className='dot';return;}
+  const nu=new Date(),maandag=new Date(nu.getFullYear(),nu.getMonth(),nu.getDate()-((nu.getDay()+6)%7));
+  const sinds=Math.floor(maandag.getTime()/1000);
+  try{
+    let lijst=[],cursor='';
+    for(let i=0;i<10;i++){
+      const d=await elGet('/v1/convai/conversations?agent_id='+encodeURIComponent(agent)+'&call_start_after_unix='+sinds+'&page_size=100'+(cursor?'&cursor='+encodeURIComponent(cursor):''));
+      lijst=lijst.concat(d.conversations||[]);
+      if(!d.has_more||!d.next_cursor)break;cursor=d.next_cursor;
+    }
+    const cijfers=lijst.map(x=>Number(x.rating)).filter(r=>r>=1&&r<=5);
+    const n=cijfers.length,gem=n?cijfers.reduce((a,b)=>a+b,0)/n:0;
+    const k=!n?'':gem>=4?'groen':gem>=3?'oranje':'rood';
+    $('dot-ch').className='dot '+k;
+    const g=$('ch-groot');g.textContent=n?gem.toLocaleString('nl-NL',{minimumFractionDigits:1,maximumFractionDigits:1}):'–';g.className='groot '+k;
+    $('ch-sterren').style.setProperty('--p',(gem/5*100)+'%');
+    $('ch-sterren').title=n?gem.toFixed(1)+' van 5':'';
+    const tel=[5,4,3,2,1].map(s=>[s,cijfers.filter(r=>Math.round(r)===s).length]).filter(x=>x[1]);
+    $('ch-verdeling').innerHTML=tel.map(([s,a])=>'<span>'+s+'★ '+a+'×</span>').join('');
+    $('ch-tekst').textContent=n
+      ?n+(n===1?' beoordeling':' beoordelingen')+' van '+lijst.length+' chats sinds maandag'
+      :(lijst.length?'Nog geen sterren gegeven ('+lijst.length+' chats sinds maandag)':'Nog geen chats sinds maandag');
+    $('ch-fout').textContent='';
+  }catch(e){
+    $('dot-ch').className='dot';$('ch-groot').textContent='–';$('ch-groot').className='groot';
+    $('ch-tekst').textContent='';$('ch-fout').textContent='Kon chats niet ophalen: '+String(e.message||e);
   }
 }
 
@@ -780,7 +831,7 @@ function gezondheid(){
     :esc(STANDEN[stand][1]||'Testweergave');
 }
 async function controleer(){
-  await Promise.all([checkGesprekken(),checkEleven(),checkTwilio(),checkMake(),checkSheet(),sdLaden()].map(p=>p.catch(()=>{})));
+  await Promise.all([checkGesprekken(),checkEleven(),checkTwilio(),checkMake(),checkSheet(),checkChat(),sdLaden()].map(p=>p.catch(()=>{})));
   gezondheid();
   $('laatste').textContent=new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
 }
