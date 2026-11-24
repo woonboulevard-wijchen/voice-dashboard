@@ -21,7 +21,7 @@
   <p class="zacht">Voor andere vragen is de orderadministratie bereikbaar van maandag tot en met vrijdag van 9:00 tot 17:00.</p>
 </main>
 <elevenlabs-convai agent-id="agent_8201m7wcc2d5ef2s7xk8jvpvkrmn"></elevenlabs-convai>
-<script>if(window.matchMedia("(max-width: 768px)").matches){document.querySelector("elevenlabs-convai").setAttribute("variant","tiny");}</script>
+<script>var c=document.querySelector("elevenlabs-convai");if(window.matchMedia("(max-width: 768px)").matches){c.setAttribute("variant","tiny");}c.setAttribute("dynamic-variables",JSON.stringify({website:new URLSearchParams(location.search).get("site")||location.hostname}));</script>
 <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
 </body>
 </html>
