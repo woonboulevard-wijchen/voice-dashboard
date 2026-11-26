@@ -24,20 +24,24 @@
 <script>
 (function(){
 var c=document.querySelector("elevenlabs-convai");if(!c)return;
-if(window.matchMedia("(max-width: 768px)").matches){c.setAttribute("variant","tiny");}
+var mob=window.matchMedia("(max-width: 768px)").matches;if(mob){c.setAttribute("variant","tiny");}
 c.setAttribute("dynamic-variables",JSON.stringify({website:new URLSearchParams(location.search).get("site")||location.hostname}));
-c.setAttribute("text-contents",JSON.stringify({collapse:"Chat inklappen",expand_widget:"Chat vergroten"}));
+c.setAttribute("text-contents",JSON.stringify({collapse:"Chat inklappen",expand_widget:"Chat vergroten",dismiss:"Chat verkleinen",open_chat:"Chat openen",start_chat:"Bericht"}));
 try{if(sessionStorage.getItem("wbw_chat_gesloten")){for(var i=sessionStorage.length-1;i>=0;i--){var k=sessionStorage.key(i);if(k&&k.indexOf("elevenlabs_convai_navigation_resume_")===0)sessionStorage.removeItem(k);}}}catch(e){}
-var S='button[aria-label="Chat inklappen"]',E='button[aria-label="Chat vergroten"]',net=false;
+var S='button[aria-label="Chat inklappen"]',E='button[aria-label="Chat vergroten"]',D='button[aria-label="Chat verkleinen"]',net=false,openen=false;
+function flag(){net=true;try{sessionStorage.setItem("wbw_chat_gesloten","1")}catch(e){}}
 function add(){var r=c.shadowRoot;if(!r)return;var col=r.querySelector(S),exp=r.querySelector(E),x=r.getElementById("wbw-sluit");
+if(mob&&!col){var d=r.querySelector(D);if(d){if(openen){openen=false;var m=r.querySelector('button[aria-label="Bericht"]');if(m){m.click();return}}else{d.click();return}}}
 if(col&&!net){try{sessionStorage.removeItem("wbw_chat_gesloten")}catch(e){}}if(!col)net=false;
 if(!col||!exp){if(x&&!col)x.remove();return}if(x)return;
 x=document.createElement("button");x.id="wbw-sluit";x.type="button";x.title="Chat sluiten";x.setAttribute("aria-label","Chat sluiten");
 x.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 x.style.cssText="border:0;background:transparent;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:inherit;margin-left:2px;padding:0;border-radius:8px";
-x.onclick=function(e){e.preventDefault();e.stopPropagation();net=true;try{sessionStorage.setItem("wbw_chat_gesloten","1")}catch(e){}var b=r.querySelector(S);if(b)b.click();};
+x.onclick=function(e){e.preventDefault();e.stopPropagation();flag();var b=r.querySelector(S);if(b)b.click();};
 exp.insertAdjacentElement("afterend",x);}
-var t=setInterval(function(){if(c.shadowRoot){clearInterval(t);c.shadowRoot.addEventListener("click",function(e){var b=e.target&&e.target.closest&&e.target.closest(S);if(b){net=true;try{sessionStorage.setItem("wbw_chat_gesloten","1")}catch(_){}}},true);new MutationObserver(add).observe(c.shadowRoot,{childList:true,subtree:true});add();}},300);
+var t=setInterval(function(){if(c.shadowRoot){clearInterval(t);
+c.shadowRoot.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("button");if(!el)return;var l=el.getAttribute("aria-label");if(l==="Chat inklappen")flag();if(l==="Chat openen")openen=true;},true);
+new MutationObserver(add).observe(c.shadowRoot,{childList:true,subtree:true});add();}},300);
 })();
 </script>
 <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
